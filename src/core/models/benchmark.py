@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Бенчмарк моделей"""
+"""Бенчмарк моделей — проверка пинга и русского языка"""
 
 import time
 import re
@@ -8,6 +8,24 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from ..config import API_KEYS, FALLBACK_MODELS, URL
 from ..logger import info, debug, error, warning
+
+# Список заведомо рабочих моделей с хорошим русским (приоритет)
+PRIORITY_MODELS = {
+    "red": [
+        "openai/gpt-oss-120b:free",
+        "deepseek/deepseek-r1:free",
+    ],
+    "yellow": [
+        "openai/gpt-oss-20b:free",
+        "qwen/qwen-2.5-32b-instruct:free",
+        "google/gemini-2.0-flash-thinking-exp:free",
+    ],
+    "blue": [
+        "meta-llama/llama-3.2-3b-instruct:free",
+        "google/gemma-2-9b-it:free",
+        "mistralai/mistral-7b-instruct:free",
+    ]
+}
 
 def get_free_models(session: requests.Session) -> Optional[Dict[str, List[str]]]:
     try:
@@ -22,6 +40,9 @@ def get_free_models(session: requests.Session) -> Optional[Dict[str, List[str]]]
             pricing = model.get("pricing", {})
             if pricing.get("prompt") == "0" and pricing.get("completion") == "0":
                 mid = model["id"]
+                # Пропускаем заведомо плохие модели
+                if any(x in mid for x in ["openrouter/free", "nvidia/nemotron", "poolside", "google/lyria"]):
+                    continue
                 m = re.search(r'(\d+)b', mid)
                 if m:
                     size = int(m.group(1))
@@ -33,6 +54,12 @@ def get_free_models(session: requests.Session) -> Optional[Dict[str, List[str]]]
                         free["red"].append(mid)
                 else:
                     free["yellow"].append(mid)
+        
+        # Добавляем приоритетные модели, если их нет
+        for color in ["red", "yellow", "blue"]:
+            for model in PRIORITY_MODELS.get(color, []):
+                if model not in free[color]:
+                    free[color].append(model)
         
         info(f"Найдено моделей: красных={len(free['red'])}, жёлтых={len(free['yellow'])}, синих={len(free['blue'])}")
         return free
@@ -46,17 +73,22 @@ def check_model(session: requests.Session, model: str) -> tuple[bool, Optional[f
     
     key = API_KEYS[0]
     
+    # Проверка пинга (увеличиваем таймаут до 15 сек для медленных моделей)
     try:
         start = time.time()
         r = session.post(URL,
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json; charset=utf-8"},
             json={"model": model, "messages": [{"role":"user","content":"ping"}], 
                   "max_tokens": 1, "temperature": 0.0},
-            timeout=8)
+            timeout=15)
         if r.status_code != 200:
             return False, None
         ping = round((time.time() - start) * 1000, 1)
     except:
+        return False, None
+    
+    # Проверка русского языка (только если пинг < 3000 мс)
+    if ping > 3000:
         return False, None
     
     try:
@@ -100,15 +132,21 @@ def update_rankings(manager):
         
         for color in ["red", "yellow", "blue"]:
             models = all_models.get(color, [])
+            # Ограничиваем количество проверяемых моделей для скорости
+            models = models[:15]
             results = []
+            
             for model in models:
                 total += 1
                 ok, ping = check_model(manager.http_session, model)
                 if ok:
                     results.append((ping, model))
                     working += 1
-                time.sleep(0.1)
+                    info(f"✅ {model} — {ping}мс")
+                time.sleep(0.2)
+            
             results.sort(key=lambda x: x[0])
+            # Берём топ-5, но не больше чем есть
             new_rankings[color] = [[p, m] for p, m in results[:5]]
         
         with manager.lock:
