@@ -1,9 +1,9 @@
 #!/bin/bash
-echo "🎲 Установка D&D Cyberpunk Master Bot..."
+echo "Установка D&D..."
 
 # Проверяем, что мы в Termux
 if [ -d /data/data/com.termux ]; then
-    echo "📱 Установка в Termux..."
+    echo "Установка в Termux..."
     pkg update && pkg upgrade -y
     pkg install python git -y
 fi
@@ -24,5 +24,5 @@ python src/main.py "$@"' > $PREFIX/bin/dnd
 chmod +x $PREFIX/bin/dnd
 
 echo ""
-echo "✅ Установка завершена!"
-echo "🚀 Запуск: dnd"
+echo "Установка завершена!"
+echo "Запуск: dnd"

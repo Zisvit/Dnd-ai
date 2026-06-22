@@ -1,38 +1,37 @@
-<<<<<<< HEAD
-# 🎲 D&D Cyberpunk Master Bot
 
-Киберпанк-мастер для игры в Dungeons & Dragons с поддержкой OpenRouter AI.
+# D&D КИБЕРПАНК БЕЗ ЦЕНЗУРЫ
 
-## Установка в Termux
+Заменяет дм-а в фоне пока запущена программа подбирает Модели в 3х категориях .
 
-```bash
-pkg update && pkg upgrade -y
-pkg install python git -y
-pip install -r requirements.txt
+
+
+
+##          TERMUX
 ```
 
-## Запуск
+curl -sSL https://raw.githubusercontent.com/Zisvit/Dnd-ai/main/install.sh
+chmod +x install.sh
 
-```bash
-python dnd_bot.py
-# или с именем сессии
-python dnd_bot.py my_campaign
 ```
 
-## Команды
+UBUNTU/DEBIAN
 
-- красный/жёлтый/синий – переключить модель
-- детальнее – повысить детализацию
-- короче – сбросить детализацию
-- теперь меня зовут X – сменить имя
-- очистить/сброс – новая игра
-- dm: приказ – прямой приказ мастеру
-- d20 – бросить кубик
+```
 
-## API ключи
+git clone https://github.com/Zisvit/Dnd-ai.git
+cd Dnd-ai
+chmod +x install.sh
+./install.sh
+```
 
-При первом запуске бот запросит ключи OpenRouter.
-Получить: https://openrouter.ai/keys
-=======
-# Dnd-ai
->>>>>>> 2ecf4320358f96e8a84831d595b3ab48e8677719
+Команды
+
+Вводите /help или помощь ^^
+Для того чтобы назвать как-то сессию можно ввести dnd "Название сессии" 
+В промпт.тхт можно менять под себя как угодно, цензура не работает по причине мягких обходов и блэклиста в случае отказа)))
+
+API ключи
+
+При первом запуске бот запросит ключ от OpenRouter.
+Получить его можно на https://openrouter.ai/keys
+Это абсолютно бесплатно, нужна лишь регистрация(проверенно)
