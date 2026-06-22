@@ -1,4 +1,4 @@
-```markdown
+```
 # D&D КИБЕРПАНК БЕЗ ЦЕНЗУРЫ
 
 Заменяет дм-а в фоне пока запущена программа подбирает Модели в 3х категориях .
@@ -7,13 +7,15 @@
 
 
 ##          TERMUX
-```bash
+```
+bash
 curl -sSL https://raw.githubusercontent.com/Zisvit/Dnd-ai/main/install.sh | bash
 ```
 
 UBUNTU/DEBIAN
 
-```bash
+```
+bash
 git clone https://github.com/Zisvit/Dnd-ai.git
 cd Dnd-ai
 chmod +x install.sh
@@ -31,5 +33,3 @@ API ключи
 При первом запуске бот запросит ключ от OpenRouter.
 Получить его можно на https://openrouter.ai/keys
 Это абсолютно бесплатно, нужна лишь регистрация(проверенно)
-
-```
