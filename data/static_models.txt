@@ -1,0 +1,21 @@
+# СТАТИЧНЫЙ СПИСОК МОДЕЛЕЙ
+# Формат: категория|модель
+# Категории: red (умные), yellow (средние), blue (быстрые)
+
+red|openai/gpt-oss-120b:free
+red|deepseek/deepseek-r1:free
+red|qwen/qwen3-next-80b-a3b-instruct:free
+red|meta-llama/llama-3.2-90b-vision-instruct:free
+red|google/gemini-2.5-pro-exp-03-25:free
+
+yellow|meta-llama/llama-3.1-70b-instruct:free
+yellow|nvidia/llama-3.1-nemotron-70b-instruct:free
+yellow|google/gemini-2.0-flash-thinking-exp:free
+yellow|openai/gpt-oss-20b:free
+yellow|qwen/qwen-2.5-32b-instruct:free
+
+blue|meta-llama/llama-3.2-3b-instruct:free
+blue|google/gemma-2-9b-it:free
+blue|mistralai/mistral-7b-instruct:free
+blue|microsoft/phi-3-mini-4k-instruct:free
+blue|google/gemma-2-2b-it:free

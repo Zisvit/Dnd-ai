@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-06-22T14:33:19.089883",
+  "models": {
+    "yellow": [
+      "cohere/north-mini-code:free",
+      "nex-agi/nex-n2-pro:free",
+      "nvidia/nemotron-3.5-content-safety:free",
+      "openrouter/owl-alpha",
+      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "poolside/laguna-xs.2:free",
+      "poolside/laguna-m.1:free",
+      "google/gemma-4-26b-a4b-it:free",
+      "google/gemma-4-31b-it:free",
+      "google/lyria-3-pro-preview",
+      "google/lyria-3-clip-preview",
+      "openrouter/free",
+      "nvidia/nemotron-3-nano-30b-a3b:free",
+      "nvidia/nemotron-nano-12b-v2-vl:free",
+      "openai/gpt-oss-20b:free",
+      "qwen/qwen3-coder:free",
+      "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+      "meta-llama/llama-3.3-70b-instruct:free"
+    ],
+    "red": [
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "nvidia/nemotron-3-super-120b-a12b:free",
+      "qwen/qwen3-next-80b-a3b-instruct:free",
+      "openai/gpt-oss-120b:free",
+      "nousresearch/hermes-3-llama-3.1-405b:free"
+    ],
+    "blue": [
+      "liquid/lfm-2.5-1.2b-thinking:free",
+      "liquid/lfm-2.5-1.2b-instruct:free",
+      "nvidia/nemotron-nano-9b-v2:free",
+      "meta-llama/llama-3.2-3b-instruct:free"
+    ]
+  }
+}

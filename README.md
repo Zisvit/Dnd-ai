@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🎲 D&D Cyberpunk Master Bot
 
 Киберпанк-мастер для игры в Dungeons & Dragons с поддержкой OpenRouter AI.
@@ -32,3 +33,6 @@ python dnd_bot.py my_campaign
 
 При первом запуске бот запросит ключи OpenRouter.
 Получить: https://openrouter.ai/keys
+=======
+# Dnd-ai
+>>>>>>> 2ecf4320358f96e8a84831d595b3ab48e8677719
