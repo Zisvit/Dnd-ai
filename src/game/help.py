@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+from src.core.colors import GREEN, BLUE, RED, YELLOW, CYAN, ORANGE, PURPLE, RESET
+
+def show_color_legend():
+    print(f"\n{YELLOW}🎨 Сюжетная подсветка:{RESET}")
+    print(f"  {CYAN}{{Персонажи}}{RESET} — NPC, важные люди")
+    print(f"  {YELLOW}<<Места>>{RESET} — локации, города, таверны")
+    print(f"  {ORANGE}[[Предметы]]{RESET} — вещи, артефакты, гаджеты")
+    print(f"  {PURPLE}__События__{RESET} — повороты сюжета, ключевые моменты")
+    print(f"  {GREEN}!!Эмоции!!{RESET} — чувства, настроение")
+    print(f"  {BLUE}\"Диалоги\"{RESET} — прямая речь персонажей")
+    print()
+
+def show_dm_help():
+    print(f"{YELLOW}🎲 Системные команды:{RESET}")
+    print("  очистить / сброс – очистить историю и выйти")
+    print("  выход / quit – сохранить сессию и выйти")
+    print()
+    print(f"{YELLOW}🎲 DM команды:{RESET}")
+    print("  красный/жёлтый/синий – переключить категорию модели")
+    print("  детальнее – повысить детализацию")
+    print("  короче – сбросить детализацию")
+    print("  теперь меня зовут X – сменить имя")
+    print("  dm: <приказ> – прямой приказ мастеру")
+    print()
+    print(f"{CYAN}📋 Информационные команды:{RESET}")
+    print("  /models или модели – показать ранкинги моделей")
+    print("  /colors или test colors – проверить работу цветов")
+    print("  /colors-legend или цвета – показать легенду цветов")
+    print("  /help или помощь – показать эту справку")
+    print("  /update или обновить модели – обновить ранкинги")
+    print("  история или /history – показать историю")
+    print("  обнови память – сжать историю")
+    print()
+    show_color_legend()
+
+def test_colors():
+    print(f"{GREEN}✅ Зелёный работает!{RESET}")
+    print(f"{BLUE}✅ Синий работает!{RESET}")
+    print(f"{RED}✅ Красный работает!{RESET}")
+    print(f"{YELLOW}✅ Жёлтый работает!{RESET}")
+    print(f"{CYAN}✅ Голубой работает!{RESET}")
+    print(f"{ORANGE}✅ Оранжевый работает!{RESET}")
+    print(f"{PURPLE}✅ Фиолетовый работает!{RESET}")
+    print()
+    print(f"{GREEN}🎲 {YELLOW}D{RED}&{BLUE}D {CYAN}Cyberpunk {ORANGE}Master {PURPLE}Bot {RESET}✅")
+    print()
