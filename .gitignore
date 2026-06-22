@@ -1,22 +1,45 @@
+# Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
 *.so
 .Python
 venv/
 env/
+ENV/
 .venv
-data/
-*.json
-!.env.example
-.env
-*.key
-*.pem
+
+# Данные пользователя (секреты)
+data/keys.txt
+data/models_ranking.json
+data/blacklist.json
+data/fast_models.json
+data/all_models_ranking.txt
+data/*.log
+
+# Шифрованные ключи
+data/.crypto_key
+data/keys.enc
+
+# Сессии
+dnd_sessions/
+
+# Логи
 *.log
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# OS
 .DS_Store
 Thumbs.db
-dnd_sessions/
+*.tmp
+
+# .env (секреты)
+.env
+
+# Запасные копии
+*.bak
