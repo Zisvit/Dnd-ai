@@ -166,7 +166,8 @@ class ModelsManager:
             elif static:
                 print(f"  ⚡ Использую статичные:")
                 for i, model in enumerate(static[:3], 1):
-                    print(f"    {i}. {model}")
+                    # Для статичных пинг не известен
+                    print(f"    {i}. {model} (пинг неизвестен)")
             else:
                 print(f"  ❌ нет моделей")
         
