@@ -9,7 +9,9 @@
 ##          TERMUX
 ```
 
-curl -sSL https://raw.githubusercontent.com/Zisvit/Dnd-ai/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Zisvit/Dnd-ai/main/install.sh
+chmod +x install.sh
+
 ```
 
 UBUNTU/DEBIAN
