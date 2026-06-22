@@ -8,14 +8,14 @@
 
 ##          TERMUX
 ```
-bash
+
 curl -sSL https://raw.githubusercontent.com/Zisvit/Dnd-ai/main/install.sh | bash
 ```
 
 UBUNTU/DEBIAN
 
 ```
-bash
+
 git clone https://github.com/Zisvit/Dnd-ai.git
 cd Dnd-ai
 chmod +x install.sh
