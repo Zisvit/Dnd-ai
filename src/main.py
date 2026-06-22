@@ -25,7 +25,7 @@ shutdown_handler.register(shutdown_models)
 
 def show_logo():
     print(f"\n{ORANGE}╔════════════════════════════════════════════╗")
-    print(f"║{YELLOW}     🎲 {RED}DnD_AI{YELLOW}-{CYAN}by-{PURPLE}AxemaN{RESET}     ║")
+    print(f"{YELLOW}              {RED}DnD_AI{YELLOW}-{CYAN}by-{PURPLE}AxemaN{RESET}     ")
     print(f"{ORANGE}╚════════════════════════════════════════════╝{RESET}\n")
 
 
