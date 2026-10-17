@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Артефакты сборки пакета
+build/
+dist/
+*.egg-info/
+
+# Данные пользователя: игнорируем каталог data/ целиком (старые файлы
+# с ключами/кэшами/логами). Актуальные данные живут в ~/.dnd_ai
+# (переопределяется DND_AI_HOME) и в репозиторий не входят.
+data/*
+
+# Сессии (история игры — личные данные)
+dnd_sessions/
+sessions/
+*.archive.jsonl
+
+# Логи
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+
+# .env и любые его вариации (секреты)
+.env
+.env.*
+*.env
+
+# Запасные копии
+*.bak
+
+# Кэш pytest
+.pytest_cache/

@@ -1,0 +1,9 @@
+include LICENSE
+include README.md
+include CHANGELOG.md
+recursive-include dndai/prompts *.txt
+recursive-include tests *.py
+global-exclude *.pyc *.pyo *.pyd __pycache__ *.bak *.log
+prune venv
+prune data
+prune dnd_sessions
