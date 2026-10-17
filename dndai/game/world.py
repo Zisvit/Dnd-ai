@@ -31,6 +31,9 @@ class WorldState:
         self.npc_voices = d.get("npc_voices", {})
         # Карта: граф связей между локациями
         self.connections = d.get("connections", {})  # loc -> [connected_locs]
+        # Экономика: явные записи рынков и динамические товары (v1.2)
+        self.markets = d.get("markets", {})
+        self.trade_goods = d.get("trade_goods", {})
 
     def to_dict(self):
         return {
@@ -39,6 +42,8 @@ class WorldState:
             "facts": self.facts,
             "npc_voices": self.npc_voices,
             "connections": self.connections,
+            "markets": self.markets,
+            "trade_goods": self.trade_goods,
         }
 
     def connect(self, a, b):

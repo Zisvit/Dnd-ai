@@ -5,6 +5,26 @@ from .colors import BLUE, CYAN, GREEN, ORANGE, PURPLE, RESET, YELLOW
 from .output import ANSI_ESCAPE
 from .output import clean as clean
 
+# Служебные маркеры мастера: игроку их не показываем (маска в highlight).
+# Список общий: новые маркеры не должны «протекать» в вывод.
+MARKER_TAGS = (
+    "ФАКТ",
+    "ЗОЛОТО",
+    "РЕПУТАЦИЯ",
+    "КВЕСТ",
+    "РЫНОК",
+    "ЦЕНА",
+    "ТОВАР",
+    "FACT",
+    "GOLD",
+    "REPUTATION",
+    "QUEST",
+    "MARKET",
+    "PRICE",
+    "GOOD",
+)
+_MARKER_RE = re.compile(r"\[\[(?:" + "|".join(MARKER_TAGS) + r")\s*:[^\]]*\]\]", re.IGNORECASE)
+
 
 def highlight(text):
     """
@@ -22,10 +42,9 @@ def highlight(text):
     # Убираем существующие ANSI
     text = ANSI_ESCAPE.sub('', text)
 
-    # Служебные маркеры ([[ФАКТ: ...]], [[ЗОЛОТО: +25]] и т.п.) игроку
-    # не показываем — они уже обработаны игровым циклом.
-    text = re.sub(r'\[\[(?:ФАКТ|ЗОЛОТО|РЕПУТАЦИЯ|КВЕСТ)\s*:[^\]]*\]\]', '', text,
-                  flags=re.IGNORECASE)
+    # Служебные маркеры ([[ФАКТ: ...]], [[ЗОЛОТО: +25]], [[ЦЕНА: ...]] и т.п.)
+    # игроку не показываем — они уже обработаны игровым циклом.
+    text = _MARKER_RE.sub("", text)
 
     # {{Персонажи}} — голубой (NPC, имена)
     text = re.sub(r'\{\{([^}]+)\}\}', CYAN + r'\1' + RESET, text)

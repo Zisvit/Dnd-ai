@@ -71,7 +71,13 @@ from dndai.commands.rpg_cmds import (
     weather_command,
     xp_command,
 )
-from dndai.commands.world_cmds import map_connect, map_show, npc_command, world_command
+from dndai.commands.world_cmds import (
+    map_connect,
+    map_show,
+    market_command,
+    npc_command,
+    world_command,
+)
 
 # Порядок имеет значение (см. docstring)
 HANDLERS = [
@@ -105,6 +111,7 @@ HANDLERS = [
     world_command,
     map_show,
     map_connect,
+    market_command,
     # персонаж
     character_create,
     character_status,

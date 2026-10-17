@@ -173,6 +173,7 @@ def show_dm_help(full=False):
             f"!мир{RESET} — {t('help.world_show')}",
             f"!идти <<Локация>>{RESET} — {t('help.goto')}",
             f"!факт Текст{RESET} — {t('help.fact')}",
+            f"!рынок{RESET} — {t('help.market')}",
         ]
     )
     _row(

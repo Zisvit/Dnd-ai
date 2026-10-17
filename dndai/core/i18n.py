@@ -1515,6 +1515,123 @@ _T: dict[str, dict[str, str]] = {
         "ru": "удалить персонажа из партии",
         "en": "remove a character from the party",
     },
+    # ── Экономика рынка (v1.2) ───────────────────────────────────────────
+    "shop.offer_ignored": {
+        "ru": "Своя цена {offer} не применяется — здесь {price} монет",
+        "en": "Custom price {offer} is ignored — local price is {price} coins",
+    },
+    "help.market": {
+        "ru": "цены и профиль рынка (!рынок; тип/достаток/сброс)",
+        "en": "market prices and profile (!market; type/wealth/reset)",
+    },
+    "market.title": {
+        "ru": "🛒 РЫНОК: <<{loc}>>",
+        "en": "🛒 MARKET: <<{loc}>>",
+    },
+    "market.size_hamlet": {"ru": "хутор", "en": "hamlet"},
+    "market.size_village": {"ru": "деревня", "en": "village"},
+    "market.size_settlement": {"ru": "посёлок", "en": "settlement"},
+    "market.size_town": {"ru": "городок", "en": "town"},
+    "market.size_city": {"ru": "город", "en": "city"},
+    "market.size_capital": {"ru": "столица", "en": "capital"},
+    "market.wealth_poor": {"ru": "бедный", "en": "poor"},
+    "market.wealth_normal": {"ru": "обычный", "en": "normal"},
+    "market.wealth_rich": {"ru": "богатый", "en": "rich"},
+    "market.tag_smith": {"ru": "кузнечный", "en": "smith"},
+    "market.tag_port": {"ru": "портовый", "en": "port"},
+    "market.src_auto": {"ru": "по имени", "en": "by name"},
+    "market.src_dm": {"ru": "мастер", "en": "dm"},
+    "market.src_manual": {"ru": "вручную", "en": "manual"},
+    "market.wealth_part": {
+        "ru": "достаток: {wealth} ({src})",
+        "en": "wealth: {wealth} ({src})",
+    },
+    "market.tags_part": {"ru": "теги: {tags}", "en": "tags: {tags}"},
+    "market.profile_neutral": {
+        "ru": "обычные цены (профиль не задан)",
+        "en": "standard prices (no profile)",
+    },
+    "market.conditions_line": {
+        "ru": "Условия: {conds} (итог {total})",
+        "en": "Conditions: {conds} (total {total})",
+    },
+    "market.conditions_none": {
+        "ru": "Условия: без изменений",
+        "en": "Conditions: none",
+    },
+    "market.prices_header": {"ru": "Покупка / скупка:", "en": "Buy / sell:"},
+    "market.mark_dm": {"ru": " (мастер)", "en": " (dm)"},
+    "market.hint": {
+        "ru": "Настроить: !рынок тип хутор|деревня|посёлок|городок|город|столица · "
+        "!рынок достаток бедный|обычный|богатый · !рынок сброс",
+        "en": "Tune: !market type hamlet|village|settlement|town|city|capital · "
+        "!market wealth poor|normal|rich · !market reset",
+    },
+    "market.no_location": {
+        "ru": "Сначала нужно оказаться в локации (!идти <<место>>).",
+        "en": "You need to be in a location first (!go <<place>>).",
+    },
+    "market.unknown_value": {
+        "ru": "Не знаю значения «{value}». Доступно: {options}",
+        "en": "Unknown value '{value}'. Available: {options}",
+    },
+    "market.size_options": {
+        "ru": "хутор|деревня|посёлок|городок|город|столица",
+        "en": "hamlet|village|settlement|town|city|capital",
+    },
+    "market.wealth_options": {"ru": "бедный|обычный|богатый", "en": "poor|normal|rich"},
+    "market.type_set": {
+        "ru": "✅ Рынок <<{loc}>>: тип — {size} (вручную)",
+        "en": "✅ Market <<{loc}>>: size — {size} (manual)",
+    },
+    "market.wealth_set": {
+        "ru": "✅ Рынок <<{loc}>>: достаток — {wealth} (вручную)",
+        "en": "✅ Market <<{loc}>>: wealth — {wealth} (manual)",
+    },
+    "market.reset_done": {
+        "ru": "↩️ Рынок <<{loc}>>: ручные настройки и наценки сняты.",
+        "en": "↩️ Market <<{loc}>>: manual settings and overrides cleared.",
+    },
+    "market.reset_none": {
+        "ru": "У рынка <<{loc}>> нет ручных настроек.",
+        "en": "Market <<{loc}>> has no manual settings.",
+    },
+    "market.note_profile": {
+        "ru": "⚖ Рынок <<{loc}>>: {parts}",
+        "en": "⚖ Market <<{loc}>>: {parts}",
+    },
+    "market.note_price": {
+        "ru": "⚖ Цена «{item}»: {price} монет",
+        "en": "⚖ Price of '{item}': {price} coins",
+    },
+    "market.note_clamped": {
+        "ru": "⚖ Цена «{item}» ограничена коридором ±×2 — стала {price} монет",
+        "en": "⚖ Price of '{item}' clamped to ±×2 — now {price} coins",
+    },
+    "market.note_unknown": {
+        "ru": "⚖ «{item}» не в каталоге — мастеру: сначала [[ТОВАР: имя|база|категория]]",
+        "en": "⚖ '{item}' is not in the catalog — DM: use [[GOOD: name|base|category]] first",
+    },
+    "market.note_cap_price": {
+        "ru": "⚖ Слишком много [[ЦЕНА]] за ход — лишние пропущены",
+        "en": "⚖ Too many [[PRICE]] markers this turn — extras skipped",
+    },
+    "market.note_cap_good": {
+        "ru": "⚖ Слишком много [[ТОВАР]] за ход — лишние пропущены",
+        "en": "⚖ Too many [[GOOD]] markers this turn — extras skipped",
+    },
+    "market.note_good": {
+        "ru": "⚖ Новый товар: «{name}» — {base} монет",
+        "en": "⚖ New good: '{name}' — {base} coins",
+    },
+    "market.note_known": {
+        "ru": "⚖ «{name}» уже в прайсе торговца — [[ТОВАР]] не нужен",
+        "en": "⚖ '{name}' is already in the merchant price list — no [[GOOD]] needed",
+    },
+    "market.note_registry_full": {
+        "ru": "⚖ Каталог товаров полон — [[ТОВАР]] пропущен",
+        "en": "⚖ Goods registry is full — [[GOOD]] skipped",
+    },
 }
 
 

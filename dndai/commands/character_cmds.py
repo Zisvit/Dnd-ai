@@ -5,6 +5,7 @@ from dndai.commands.context import GameContext
 from dndai.commands.result import CommandResult
 from dndai.core.colors import GREEN, RED, RESET, YELLOW
 from dndai.core.i18n import t
+from dndai.game import economy
 from dndai.game.character import parse_character_command, show_character
 
 
@@ -105,27 +106,20 @@ def gold_command(act, ctx: GameContext):
         f"{ORANGE}{t('char.gold_show', gold=c.gold)}{RESET}")
 
 
-# ── Прайс-лист торговца (частичное совпадение по имени) ──
-SHOP_PRICES = {
-    "зелье лечения": 25, "зелье": 25, "факел": 2, "верёвка": 5,
-    "отмычки": 40, "стрелы": 10, "кинжал": 15, "меч": 50, "щит": 30,
-    "лук": 60, "кольчуга": 100, "латы": 250, "посох": 20, "топор": 40,
-}
-
-
-def _price(item):
-    it = item.lower()
-    best = None
-    for name, price in SHOP_PRICES.items():
-        if name in it and (best is None or len(name) > len(best[0])):
-            best = (name, price)
-    return best[1] if best else None
+# ── Прайс торговца переехал в dndai.game.economy ──
+# Цены зависят от локации и условий мира; SHOP_PRICES оставлен
+# как нейтральный прайс для обратной совместимости.
+SHOP_PRICES = economy.SHOP_PRICES
 
 
 def shop_command(act, ctx: GameContext):
-    """`!купить <предмет> [цена]` / `!продать <предмет> [цена]`."""
-    m_buy = re.match(r'(?i)!?\s*(?:купить|куплю|buy)\s+(.+?)\s*$', act)
-    m_sell = re.match(r'(?i)!?\s*(?:продать|продаю|sell)\s+(.+?)\s*$', act)
+    """`!купить <предмет> [цена]` / `!продать <предмет> [цена]`.
+
+    Цена берётся из экономики локации; своё число — только подсказка,
+    в сделке не участвует (игроку показываем, что она не применена).
+    """
+    m_buy = re.match(r"(?i)!?\s*(?:купить|куплю|buy)\s+(.+?)\s*$", act)
+    m_sell = re.match(r"(?i)!?\s*(?:продать|продаю|sell)\s+(.+?)\s*$", act)
     if not m_buy and not m_sell:
         return None
     from dndai.core.colors import ORANGE
@@ -137,31 +131,42 @@ def shop_command(act, ctx: GameContext):
         return body, None
 
     c = ctx.character
+
+    def offer_note(offer, price):
+        """Своя цена в команде не применяется — нота игроку."""
+        if offer is None:
+            return ""
+        return f"\n{YELLOW}{t('shop.offer_ignored', offer=offer, price=price)}{RESET}"
+
     if m_buy:
-        item, price = parse_body(m_buy.group(1).strip())
-        price = price or _price(item) or 30
+        item, offer = parse_body(m_buy.group(1).strip())
+        price = economy.buy_price(ctx.world, item)
         if c.gold < price:
             return CommandResult(
-                f"{RED}{t('shop.cant_afford', item=item, price=price, gold=c.gold)}{RESET}")
+                f"{RED}{t('shop.cant_afford', item=item, price=price, gold=c.gold)}{RESET}"
+            )
         c.gold -= price
         c.inventory.append(item.title() if item.islower() else item)
         ctx.persist()
         return CommandResult(
-            f"{GREEN}{t('shop.bought', item=item, price=price, gold=c.gold)}{RESET}")
+            f"{GREEN}{t('shop.bought', item=item, price=price, gold=c.gold)}{RESET}"
+            + offer_note(offer, price)
+        )
 
     # продажа
     assert m_sell is not None  # m_buy уже обработан выше
-    item, price = parse_body(m_sell.group(1).strip())
+    item, offer = parse_body(m_sell.group(1).strip())
     found = next((i for i in c.inventory if item.lower() in i.lower()), None)
     if not found:
         return CommandResult(f"{YELLOW}{t('shop.not_owned', item=item)}{RESET}")
-    base = _price(found) or 20
-    price = price or max(1, base // 2)  # скупка за полцены
+    price = economy.sell_price(ctx.world, found)
     c.inventory.remove(found)
     c.gold += price
     ctx.persist()
     return CommandResult(
-        f"{ORANGE}{t('shop.sold', item=found, price=price, gold=c.gold)}{RESET}")
+        f"{ORANGE}{t('shop.sold', item=found, price=price, gold=c.gold)}{RESET}"
+        + offer_note(offer, price)
+    )
 
 
 def equip_command(act, ctx: GameContext):

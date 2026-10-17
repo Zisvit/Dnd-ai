@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from dndai.core.text import format_paragraphs, highlight
+from dndai.core.text import MARKER_TAGS, format_paragraphs, highlight
 
 
 def test_highlight_npc():
@@ -36,6 +36,15 @@ def test_highlight_emotion():
 def test_highlight_dialogue():
     result = highlight('"Привет!" — говорит он')
     assert "Привет!" in result
+
+
+def test_highlight_strips_service_markers():
+    # служебные маркеры (в т.ч. экономика) не протекают в вывод игроку
+    for tag in MARKER_TAGS:
+        result = highlight(f"до [[{tag}: Секретное слово]] после")
+        assert "Секретное" not in result, tag
+        assert "[[" not in result, tag
+        assert "]]" not in result, tag
 
 
 def test_highlight_none():

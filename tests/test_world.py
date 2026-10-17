@@ -16,6 +16,8 @@ def test_world_roundtrip_preserves_all_fields():
         "facts": ["Врата закрыты"],
         "npc_voices": {"Иван": "грубый"},
         "connections": {"Лагерь": ["Пещера"]},
+        "markets": {},
+        "trade_goods": {},
     }
     assert WorldState(data).to_dict() == data
 

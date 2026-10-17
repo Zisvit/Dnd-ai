@@ -53,6 +53,7 @@ from dndai.core.task_types import TaskType
 from dndai.core.text import clean, emoji, format_paragraphs, highlight
 from dndai.game.character import CharacterState, sync_with_progression
 from dndai.game.commands import clear_history_and_exit, set_globals, show_dm_status
+from dndai.game.economy import apply_trade_markers, market_block
 from dndai.game.party import Party
 from dndai.game.rpg import (
     Enemies,
@@ -210,6 +211,9 @@ def start_new_game(session_name, party, world=None):
         world_block = world.prompt_block()
         if world_block:
             mem_parts.append(world_block)
+        market_blk = market_block(world)
+        if market_blk:
+            mem_parts.append(market_blk)
     mem = "\n".join(mem_parts)
     history = [{"role": "user", "content": t("main.first_prompt_tavern")}]
     text, mdl, err, _ = ask_dm(
@@ -353,7 +357,7 @@ def trim_memory_blocks(parts, max_chars):
             return 1
         if "ПАМЯТЬ СЮЖЕТА" in head or "КВЕСТЫ" in head:
             return 2
-        if "ФАКТЫ" in head or "МИР]" in head:
+        if "ФАКТЫ" in head or "МИР]" in head or "РЫНОК]" in head:
             return 3
         if "ЭФФЕКТЫ" in head or "ЗАКЛИНАНИЯ" in head:
             return 4
@@ -540,7 +544,8 @@ def _game(session_name):
     """Игровой цикл сессии (окружение проверено и создано в main())."""
     init_models()
 
-    history, memory, summary, state_raw, world_raw, rpg_raw = load_game_session(
+    # memory из файла — legacy: памятка пересобирается перед каждым ходом
+    history, _memory, summary, state_raw, world_raw, rpg_raw = load_game_session(
         session_name
     )
     party = Party(state_raw)
@@ -583,40 +588,36 @@ def _game(session_name):
         commands.forced_model, commands.forced_detail_level, commands.PLAYER_NAME
     )
 
-    # Собираем "память" для DM: вечный summary + состояние персонажа + мир
-    memory_parts = []
-    if summary:
-        memory_parts.append(f"[ПАМЯТЬ СЮЖЕТА]\n{summary}\n[/ПАМЯТЬ СЮЖЕТА]")
-    char_block = character.prompt_block()
-    if char_block:
-        memory_parts.append(char_block)
-    party_block = party.prompt_block()
-    if party_block:
-        memory_parts.append(party_block)
-    world_block = world.prompt_block()
-    if world_block:
-        memory_parts.append(world_block)
-    # RPG-системы
-    for blk in (
-        spells.prompt_block(),
-        prog.prompt_block(),
-        status.prompt_block(),
-        enemies.prompt_block(),
-        reputation.prompt_block(),
-        quests.prompt_block(),
-        npcs.prompt_block(),
-        timew.prompt_block(),
-        journal.prompt_block(),
-        style.prompt_block(),
-    ):
-        if blk:
-            memory_parts.append(blk)
-    memory = "\n".join(memory_parts)
-    # Ограничиваем размер system-промпта: режем ПО БЛОКАМ [СЕКЦИЯ]...[/СЕКЦИЯ]
-    # от наименее важных к наиболее, а не жёстким срезом посередине строки.
+    # Память для DM пересобирается перед каждым ходом: золото/инвентарь/
+    # локация/цены не устаревают. Ограничение размера — по блокам [СЕКЦИЯ].
     MAX_MEMORY_CHARS = 6000
-    if len(memory) > MAX_MEMORY_CHARS:
-        memory = trim_memory_blocks(memory_parts, MAX_MEMORY_CHARS)
+
+    def build_memory():
+        memory_parts = []
+        if summary:
+            memory_parts.append(f"[ПАМЯТЬ СЮЖЕТА]\n{summary}\n[/ПАМЯТЬ СЮЖЕТА]")
+        for blk in (
+            character.prompt_block(),
+            party.prompt_block(),
+            world.prompt_block(),
+            market_block(world),
+            spells.prompt_block(),
+            prog.prompt_block(),
+            status.prompt_block(),
+            enemies.prompt_block(),
+            reputation.prompt_block(),
+            quests.prompt_block(),
+            npcs.prompt_block(),
+            timew.prompt_block(),
+            journal.prompt_block(),
+            style.prompt_block(),
+        ):
+            if blk:
+                memory_parts.append(blk)
+        mem = "\n".join(memory_parts)
+        if len(mem) > MAX_MEMORY_CHARS:
+            mem = trim_memory_blocks(memory_parts, MAX_MEMORY_CHARS)
+        return mem
 
     if history:
         history, summary = compress_if_needed(history, session_name, character, summary)
@@ -789,7 +790,7 @@ def _game(session_name):
                         _printer = StreamingPrinter()
                         text, mdl, err, streamed = ask_dm(
                             history,
-                            memory,
+                            build_memory(),
                             "",
                             commands.forced_model,
                             commands.forced_detail_level,
@@ -843,7 +844,7 @@ def _game(session_name):
             _printer = StreamingPrinter()
             text, mdl, err, streamed = ask_dm(
                 history,
-                memory,
+                build_memory(),
                 act,
                 commands.forced_model,
                 commands.forced_detail_level,
@@ -945,6 +946,12 @@ def _game(session_name):
                             f"{CYAN}{emoji('📜')} "
                             f"{t('rpg.quest_added', title=title.strip())}{RESET}"
                         )
+
+            # ── Экономика от мастера: [[РЫНОК]], [[ЦЕНА]], [[ТОВАР]] ──
+            trade_notes = apply_trade_markers(text, world)
+            if trade_notes and not quiet_mode["on"]:
+                for note in trade_notes:
+                    print(f"{CYAN}{note}{RESET}")
 
             expired = status.tick()
             if expired and not quiet_mode["on"]:
