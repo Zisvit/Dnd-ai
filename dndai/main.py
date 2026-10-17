@@ -158,6 +158,29 @@ def print_welcome(session_name, history, player_name, summary, journal=None):
     show_startup_hint()
 
 
+def _save_party_only(session_name, party, world=None):
+    """Сохраняет партию, если первый ход не удался (файла сессии ещё нет).
+
+    Существующий файл не трогаем — иначе повторный вход после сбоя
+    затирал бы прежний прогресс.
+    """
+    from dndai.game.session import SESSION_DIR
+
+    if (SESSION_DIR / f"{session_name}.json").exists():
+        return
+    try:
+        save_game_session(
+            session_name,
+            [],
+            summary="",
+            state=party.to_dict(),
+            world=world.to_dict() if world is not None else None,
+            rpg={},
+        )
+    except Exception as e:
+        error(f"[{session_name}] партия не сохранена: {e}")
+
+
 def start_new_game(session_name, party, world=None):
     print(f"{GREEN}{t('main.new_session', session=session_name)}{RESET}")
     show_startup_hint()
@@ -198,6 +221,8 @@ def start_new_game(session_name, party, world=None):
     if not text:
         print(f"{RED}{err or t('main.models_unavailable')}{RESET}")
         print(f"{YELLOW}{t('main.switch_model_hint')}{RESET}")
+        # Провал генерации не должен терять созданного персонажа.
+        _save_party_only(session_name, party, world)
         return None, ""
 
     history.append({"role": "assistant", "content": clean(text)})

@@ -83,7 +83,7 @@ def compress_local(history: list[dict]) -> Optional[str]:
     if facts["locations"]:
         parts.append(f"Партия в <<{facts['locations'][0]}>>")
     if facts["npcs"]:
-        parts.append("встречают {" + facts['npcs'][0] + "}}")
+        parts.append("встречают {{" + facts['npcs'][0] + "}}")
     if facts["events"]:
         parts.append("__" + facts['events'][0] + "__")
     if facts["last_player_action"]:
@@ -115,7 +115,7 @@ def compress_via_api(history: list[dict], task_type: TaskType = TaskType.SIMPLE)
         models = PROVIDER_MODELS_BY_TIER.get(provider_name, {}).get(tier, [])
         for model in models:
             try:
-                ans, err = api_request(provider, model, messages, max_tok=150, timeout=15)
+                ans, _err, _kind = api_request(provider, model, messages, max_tok=150, timeout=15)
                 if ans and len(ans.strip()) > 10:
                     return ans.strip()
             except Exception:

@@ -68,6 +68,38 @@ def test_chronicle_export(tmp_path, monkeypatch):
     assert "Хроника" in text and "ход первый" in text
 
 
+def test_session_reads_with_utf8(tmp_path, monkeypatch):
+    """Регресс №7: чтение сессии без явного encoding зависело от локали."""
+    use_tmp_dir(monkeypatch, tmp_path)
+    save_game_session("u", [{"role": "user", "content": "Привет, мир"}])
+
+    from pathlib import Path
+
+    seen = []
+    original = Path.read_text
+
+    def spy(self, *args, **kwargs):
+        seen.append(kwargs.get("encoding"))
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", spy)
+    h, *_ = load_game_session("u")
+    assert h[0]["content"] == "Привет, мир"
+    assert seen and all(enc == "utf-8" for enc in seen)
+
+
+def test_invalid_utf8_falls_back_to_bak(tmp_path, monkeypatch):
+    """Регресс №7: битая кодировка не должна ронять загрузку сессии."""
+    use_tmp_dir(monkeypatch, tmp_path)
+    save_game_session("x", [{"role": "user", "content": "старое"}])
+    assert backup_session("x")
+    save_game_session("x", [{"role": "user", "content": "новое"}])
+    (tmp_path / "x.json").write_bytes(b"\xff\xfe\x00\x01 definitely not utf-8")
+
+    h, *_ = load_game_session("x")
+    assert h[0]["content"] == "старое"
+
+
 if __name__ == "__main__":
     import pytest
     sys.exit(pytest.main([__file__, "-q"]))

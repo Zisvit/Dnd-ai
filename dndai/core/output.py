@@ -191,7 +191,7 @@ class StreamingPrinter:
                     self._in_think = True
                 else:
                     safe_end = len(self._buf)
-                    for plen in range(min(_MAX_TAG_LEN, len(self._buf)), 1, -1):
+                    for plen in range(min(_MAX_TAG_LEN, len(self._buf)), 0, -1):
                         if self._buf[-plen:] in _OPEN_PREFIXES:
                             safe_end = len(self._buf) - plen
                             break

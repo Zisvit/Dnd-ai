@@ -28,19 +28,21 @@ def load_session(name):
     if not f.exists():
         return default
     try:
-        data = json.loads(f.read_text())
+        data = json.loads(f.read_text(encoding="utf-8"))
         if isinstance(data, dict):
             return data
         return default
-    except (json.JSONDecodeError, OSError):
-        # Основной файл повреждён (обрыв записи, ручная правка) — пробуем бэкап
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        # Основной файл повреждён (обрыв записи, ручная правка, битая
+        # кодировка) — пробуем бэкап
+        _log_warning(f"Сессия '{name}': основной файл не читается, пробую .bak")
         bak = SESSION_DIR / f"{name}.json.bak"
         if bak.exists():
             try:
-                data = json.loads(bak.read_text())
+                data = json.loads(bak.read_text(encoding="utf-8"))
                 if isinstance(data, dict):
                     return data
-            except (json.JSONDecodeError, OSError):
+            except (json.JSONDecodeError, OSError, UnicodeDecodeError):
                 pass
         return default
 

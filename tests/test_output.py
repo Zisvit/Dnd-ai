@@ -189,6 +189,53 @@ def test_highlight_keeps_item_markup():
     assert "Аптечка" in result
 
 
+def _make_printer(monkeypatch):
+    import importlib
+
+    output_mod = importlib.import_module("dndai.core.output")
+    printed = []
+    monkeypatch.setattr(output_mod, "_write", printed.append)
+    return output_mod.StreamingPrinter(), printed
+
+
+def test_streaming_printer_keeps_single_lt(monkeypatch):
+    """Регресс №2: одиночный '<' терялся и следующий токен печатался как текст."""
+    printer, printed = _make_printer(monkeypatch)
+    printer.on_token("Абв<")
+    printer.on_token("think>тайна</think> дальше")
+    printer.finish()
+    out = "".join(printed)
+    assert "Абв" in out
+    assert "дальше" in out
+    assert "тайна" not in out
+
+
+def test_streaming_printer_hides_tag_split_across_tokens(monkeypatch):
+    printer, printed = _make_printer(monkeypatch)
+    for chunk in ["<thi", "nk>секрет", " ответа</thi", "nk> Видимый текст"]:
+        printer.on_token(chunk)
+    printer.finish()
+    out = "".join(printed)
+    assert "секрет" not in out
+    assert "ответа" not in out
+    assert "Видимый текст" in out
+
+
+def test_streaming_printer_finish_flushes_pending_lt(monkeypatch):
+    printer, printed = _make_printer(monkeypatch)
+    printer.on_token("Текст<")
+    printer.finish()
+    assert "".join(printed).startswith("Текст<")
+
+
+def test_streaming_printer_keeps_legit_lt_in_text(monkeypatch):
+    printer, printed = _make_printer(monkeypatch)
+    printer.on_token("урон 2 <")
+    printer.on_token(" 3")
+    printer.finish()
+    assert "2 < 3" in "".join(printed)
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     passed = 0

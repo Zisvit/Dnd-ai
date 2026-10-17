@@ -23,7 +23,7 @@ from typing import Optional
 
 from dndai.core.config import PROVIDERS, BLACKLIST_PATH, get_ollama_models
 from dndai.core.config.prompts import REFUSE_PATTERNS, DETAIL_LEVELS
-from dndai.core.logger import debug as log_debug
+from dndai.core.logger import debug as log_debug, warning as log_warning
 from .client import get_session
 from .prompts import SYSTEM_PROMPT_TEMPLATE, FIRST_MESSAGE_PROMPT, JAILBREAK_PROMPT
 from dndai.core.i18n import t, variants as i18n_variants
@@ -342,46 +342,62 @@ def _do_streaming_request(provider, model, payload, headers, timeout, on_token):
 
         full = []
         broken = False
-        # iter_lines без decode_unicode + ручное декодирование (fix для Groq)
-        for line_bytes in r.iter_lines(decode_unicode=False):
-            if not line_bytes:
-                continue
-            try:
-                line = line_bytes.decode("utf-8")
-            except UnicodeDecodeError:
-                line = line_bytes.decode("utf-8", errors="replace")
-            if not line.startswith("data:"):
-                continue
-            chunk = line[5:].strip()
-            if chunk == "[DONE]":
-                break
-            try:
-                obj = json.loads(chunk)
-                choices = obj.get("choices", [])
-                if not choices:
+        # iter_lines без decode_unicode + ручное декодирование (fix для Groq).
+        # Сетевой обрыв посреди потока ловим здесь и превращаем в broken:
+        # наружу исключение не уходит — иначе retry дублировал бы ранее
+        # показанный игроку текст.
+        try:
+            for line_bytes in r.iter_lines(decode_unicode=False):
+                if not line_bytes:
                     continue
-                delta = choices[0].get("delta", {})
-                content = delta.get("content", "") if isinstance(delta, dict) else ""
-                if content:
-                    full.append(content)
-                    if on_token:
-                        on_token(content)
-            except Exception:
-                # битый чанк — завершаем, но не теряем набранное
-                broken = True
-                break
+                try:
+                    line = line_bytes.decode("utf-8")
+                except UnicodeDecodeError:
+                    line = line_bytes.decode("utf-8", errors="replace")
+                if not line.startswith("data:"):
+                    continue
+                chunk = line[5:].strip()
+                if chunk == "[DONE]":
+                    break
+                try:
+                    obj = json.loads(chunk)
+                    choices = obj.get("choices", [])
+                    if not choices:
+                        continue
+                    delta = choices[0].get("delta", {})
+                    content = (
+                        delta.get("content", "") if isinstance(delta, dict) else ""
+                    )
+                    if content:
+                        full.append(content)
+                        if on_token:
+                            on_token(content)
+                except Exception:
+                    # битый чанк — завершаем, но не теряем набранное
+                    broken = True
+                    break
+        except Exception as e:
+            log_debug("[%s] обрыв потока: %s", provider["name"], e)
+            broken = True
 
         text = "".join(full).strip()
         if text:
             if _is_refusal(text):
-                _notify(provider["name"], 0, False)
                 return None, t("api.refusal"), "refusal"
             _notify(provider["name"], len(text) // 4, True)
             if broken:
-                # ответ оборван посреди генерации — честно предупреждаем
-                text += "\n\n" + t("api.stream_truncated")
+                # Ответ оборван посреди генерации: предупреждаем на экране
+                # (через on_token), но НЕ подмешиваем маркер в текст — иначе
+                # он уходит в историю и копится в контексте модели.
+                note = "\n\n" + t("api.stream_truncated")
+                if on_token:
+                    try:
+                        on_token(note)
+                    except Exception:
+                        pass
+                else:
+                    log_debug("[%s] поток оборван: текст неполный", provider["name"])
             return text, None, None
-        _notify(provider["name"], 0, False)
         return (
             None,
             t("api.empty_response") if not broken else t("api.stream_broken"),
@@ -457,6 +473,17 @@ def _iter_providers_for_task(task_type: TaskType, forced_model: Optional[str] = 
             if forced_model in p["models"]:
                 yield p, forced_model
                 return
+        # Модель может отсутствовать в статическом списке провайдера, но быть
+        # в tier-таблице (её принимает /model) — тогда выбор обязан примениться.
+        for p in PROVIDERS:
+            for tier_models in PROVIDER_MODELS_BY_TIER.get(p["name"], {}).values():
+                if forced_model in tier_models:
+                    yield p, forced_model
+                    return
+        log_warning(
+            f"{forced_model}: модель не найдена ни у одного провайдера, "
+            "использую автоподбор"
+        )
 
     def _provider_named(name):
         p = next((p for p in PROVIDERS if p["name"] == name), None)
