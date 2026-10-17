@@ -5,12 +5,11 @@
 Всё хранится в сессии как dict `rpg` и сериализуется через to_dict/from_dict.
 """
 
-import re
 import random
+import re
 
-from dndai.core.colors import GREEN, BLUE, RED, YELLOW, CYAN, RESET
+from dndai.core.colors import BLUE, CYAN, GREEN, RED, RESET, YELLOW
 from dndai.core.i18n import t
-
 
 # ── Лечащие заклинания ──────────────────────────────────────────────────
 
@@ -868,7 +867,7 @@ def parse_npc_command(text):
     if not m:
         return None
     # исключаем команды удаления
-    if re.match(r'(?i)!?\s*npc\s+(?:удал|del|rm)\b', text):
+    if re.match(r'(?i)!?\s*npc\s+(?:удал(?:ить)?|del|rm)\b', text):
         return None
     name = m.group(1).strip("{}").strip()
     rest = m.group(2).strip()
@@ -908,7 +907,7 @@ def parse_macro_command(text):
     m = re.match(r'(?i)!?\s*макрос\s+(\S+)\s*(?:=|:)\s*(.+)', text)
     if m:
         return ("macro_add", (m.group(1).strip(), m.group(2).strip()))
-    m = re.match(r'(?i)!?\s*макрос\s+(?:удал|del|rm)\s+(\S+)', text)
+    m = re.match(r'(?i)!?\s*макрос\s+(?:удал(?:ить)?|del|rm)\s+(\S+)', text)
     if m:
         return ("macro_del", m.group(1).strip())
     return None

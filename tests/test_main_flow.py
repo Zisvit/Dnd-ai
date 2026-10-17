@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """Провал первого ответа мастера не теряет созданного персонажа (регресс №3)."""
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 
-import dndai.main as main_mod
 import dndai.game.session as session_mod
+import dndai.main as main_mod
 from dndai.game.character import CharacterState
 from dndai.game.party import Party
 from dndai.game.world import WorldState

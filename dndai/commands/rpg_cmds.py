@@ -1,21 +1,32 @@
 """RPG-системы: заклинания, уровни, статус-эффекты, квесты, время,
 погода, журнал, макросы, тон/жанр, тихий режим, проверка фактов."""
-import re
 import random
+import re
 
 from dndai.commands.context import GameContext
 from dndai.commands.result import CommandResult
-from dndai.game.rpg import (
-    parse_spell_command, parse_quest_command, parse_status_command,
-    parse_macro_command,
-)
-from dndai.core.colors import GREEN, RED, YELLOW, CYAN, BLUE, RESET
-from dndai.core.text import emoji
+from dndai.core.colors import BLUE, CYAN, GREEN, RED, RESET, YELLOW
 from dndai.core.i18n import t
+from dndai.core.text import emoji
+from dndai.game.rpg import (
+    parse_macro_command,
+    parse_quest_command,
+    parse_spell_command,
+    parse_status_command,
+)
 
 
 # ── Заклинания ──
 def spell_command(act, ctx: GameContext):
+    # Удаление проверяем до добавления: «!заклинание удалить X» не должно
+    # создавать заклинание с именем «удалить X».
+    m_del = re.match(r'(?i)!?\s*закл(?:инание)?\s+удал(?:ить)?\s+(\S+)', act)
+    if m_del:
+        if ctx.spells.remove(m_del.group(1)):
+            ctx.persist()
+            return CommandResult(f"{GREEN}{t('rpg.spell_removed')}{RESET}")
+        return CommandResult(f"{YELLOW}{t('rpg.spell_not_found')}{RESET}")
+
     parsed = parse_spell_command(act)
     if parsed:
         action, data = parsed
@@ -35,13 +46,6 @@ def spell_command(act, ctx: GameContext):
     if re.match(r'(?i)!?\s*закл(?:инания)?\s*$', act) or re.match(r'(?i)!?\s*spells\s*$', act):
         ctx.spells.show()
         return CommandResult.silent()
-
-    m_del = re.match(r'(?i)!?\s*закл(?:инание)?\s+удал(?:ить)?\s+(\S+)', act)
-    if m_del:
-        if ctx.spells.remove(m_del.group(1)):
-            ctx.persist()
-            return CommandResult(f"{GREEN}{t('rpg.spell_removed')}{RESET}")
-        return CommandResult(f"{YELLOW}{t('rpg.spell_not_found')}{RESET}")
     return None
 
 
@@ -78,6 +82,15 @@ def xp_command(act, ctx: GameContext):
 
 # ── Статус-эффекты ──
 def status_command(act, ctx: GameContext):
+    # Удаление проверяем до добавления: «!статус-эффект удалить X» не должно
+    # создавать эффект с именем «удалить».
+    m_del = re.match(r'(?i)!?\s*(?:статус-эффект|эффект)\s+удал(?:ить)?\s+(\S+)', act)
+    if m_del:
+        if ctx.status.remove(m_del.group(1)):
+            ctx.persist()
+            return CommandResult(f"{GREEN}{t('rpg.effect_removed')}{RESET}")
+        return CommandResult(f"{YELLOW}{t('rpg.effect_not_found')}{RESET}")
+
     parsed = parse_status_command(act)
     if parsed:
         action, data = parsed
@@ -90,14 +103,6 @@ def status_command(act, ctx: GameContext):
                 return CommandResult(
                     f"{GREEN}{t('rpg.effect_applied', name=name, rounds=rounds, desc=d)}{RESET}")
             return CommandResult(f"{YELLOW}{t('rpg.effect_apply_fail')}{RESET}")
-
-    if (re.match(r'(?i)!?\s*статус-эффект\s+удал(?:ить)?\s+(\S+)', act)
-            or re.match(r'(?i)!?\s*эффект\s+удал(?:ить)?\s+(\S+)', act)):
-        m = re.search(r'(?i)(?:статус-эффект|эффект)\s+удал(?:ить)?\s+(\S+)', act)
-        if m and ctx.status.remove(m.group(1)):
-            ctx.persist()
-            return CommandResult(f"{GREEN}{t('rpg.effect_removed')}{RESET}")
-        return CommandResult(f"{YELLOW}{t('rpg.effect_not_found')}{RESET}")
 
     if re.match(r'(?i)!?\s*(?:эффекты|статус)\s*$', act):
         ctx.status.show()
@@ -263,7 +268,7 @@ def rest_command(act, ctx: GameContext):
     c.reset_death_saves()
     ctx.timew.advance(8)
     ctx.persist()
-    hour_str = "%02d" % ctx.timew.hour
+    hour_str = f"{ctx.timew.hour:02d}"
     msg = t('rpg.rest_done', day=ctx.timew.day,
             hour=hour_str, hp=c.hp, max_hp=c.max_hp)
     out = f"{GREEN}{emoji('🛏')} {msg}{RESET}"

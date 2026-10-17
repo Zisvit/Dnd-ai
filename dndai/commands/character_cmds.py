@@ -3,10 +3,9 @@ import re
 
 from dndai.commands.context import GameContext
 from dndai.commands.result import CommandResult
-from dndai.game.character import parse_character_command, show_character
-from dndai.core.colors import GREEN, RED, YELLOW, RESET
-
+from dndai.core.colors import GREEN, RED, RESET, YELLOW
 from dndai.core.i18n import t
+from dndai.game.character import parse_character_command, show_character
 
 
 def character_create(act, ctx: GameContext):
@@ -151,6 +150,7 @@ def shop_command(act, ctx: GameContext):
             f"{GREEN}{t('shop.bought', item=item, price=price, gold=c.gold)}{RESET}")
 
     # продажа
+    assert m_sell is not None  # m_buy уже обработан выше
     item, price = parse_body(m_sell.group(1).strip())
     found = next((i for i in c.inventory if item.lower() in i.lower()), None)
     if not found:
@@ -168,7 +168,7 @@ def equip_command(act, ctx: GameContext):
     """`!надеть <предмет>` / `!снять [предмет]` — экипировка.
 
     Оружие задаёт кость урона, броня и щит добавляют КД."""
-    from dndai.game.character import WEAPONS, ARMORS, _lookup
+    from dndai.game.character import ARMORS, WEAPONS, _lookup
     m_on = re.match(r'(?i)!?\s*(?:надеть|экипировать|equip|взять оружие)\s+(.+?)\s*$', act)
     m_off = re.match(r'(?i)!?\s*(?:снять|unequip|убрать)(?:\s+(.+?))?\s*$', act)
     c = ctx.character

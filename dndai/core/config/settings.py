@@ -6,6 +6,8 @@
 """
 
 import os
+import threading
+import time
 from pathlib import Path
 
 import requests
@@ -30,7 +32,7 @@ _OLLAMA_SERVER_URL = os.getenv("OLLAMA_SERVER_URL", "http://localhost:11434").rs
 
 # Базовые URL и модели по умолчанию для каждого провайдера.
 # Все провайдеры используют OpenAI-совместимый формат /chat/completions.
-PROVIDER_DEFS = [
+PROVIDER_DEFS: list[dict] = [
     {
         "name": "Groq",
         "env_key": "GROQ_API_KEY",
@@ -103,12 +105,46 @@ def fetch_ollama_models(ollama_api_url: str) -> list:
     return []
 
 
+# ── TTL-кэш списка моделей Ollama (без сети при импорте и повторах) ─────
+_OLLAMA_CACHE_TTL_S = 300.0  # сек; переопределяется env OLLAMA_CACHE_TTL
+_ollama_cache: dict[str, tuple[float, list[str]]] = {}  # url -> (monotonic, models)
+_ollama_cache_lock = threading.Lock()
+_monotonic = time.monotonic  # тестируемый шов для TTL
+
+
+def _ollama_cache_ttl() -> float:
+    raw = os.getenv("OLLAMA_CACHE_TTL")
+    try:
+        return max(0.0, float(raw)) if raw else _OLLAMA_CACHE_TTL_S
+    except ValueError:
+        return _OLLAMA_CACHE_TTL_S
+
+
+def reset_ollama_models_cache():
+    """Сбрасывает кэш моделей Ollama (тесты, смена конфигурации)."""
+    with _ollama_cache_lock:
+        _ollama_cache.clear()
+
+
 def get_ollama_models() -> list:
-    """Получает список моделей от Ollama-Server с фоллбэком на хардкод."""
+    """Список моделей от Ollama-Server: TTL-кэш + фоллбэк на хардкод.
+
+    Сеть не дёргаем под локом: попадание — из кэша, промах — fetch
+    вне лока (параллельный двойной fetch допустим), кэшируем только
+    непустой успех. TTL в секундах: env OLLAMA_CACHE_TTL (по умолч. 300)."""
+    ttl = _ollama_cache_ttl()
     for p in PROVIDER_DEFS:
         if p.get("dynamic_models") and p.get("ollama_api_url"):
-            models = fetch_ollama_models(p["ollama_api_url"])
+            url = p["ollama_api_url"]
+            now = _monotonic()
+            with _ollama_cache_lock:
+                hit = _ollama_cache.get(url)
+            if hit is not None and now - hit[0] < ttl:
+                return list(hit[1])
+            models = fetch_ollama_models(url)  # сеть — вне лока
             if models:
+                with _ollama_cache_lock:
+                    _ollama_cache[url] = (_monotonic(), list(models))
                 return models
     # Фоллбэк на хардкод
     for p in PROVIDER_DEFS:

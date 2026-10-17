@@ -29,4 +29,5 @@ __all__ = [
     "REFUSE_PATTERNS",
     "DETAIL_LEVELS",
     "TERM_WIDTH",
+    "reset_ollama_models_cache",
 ]

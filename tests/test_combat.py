@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Тесты боевой системы: раунд боя, крит, урон по лежащему,
 морale, лечение заклинанием, стабилизация."""
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from dndai.commands.combat_cmds import (fight_command, save_command,
-                                      _attack_round)
+from dndai.commands.combat_cmds import _attack_round, fight_command, save_command
 from tests.test_dispatch import make_ctx
 
 

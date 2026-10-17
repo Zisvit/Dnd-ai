@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Тесты dndai/core/dice.py"""
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dndai.core.dice import roll_dice

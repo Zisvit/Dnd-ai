@@ -4,8 +4,8 @@
 чтобы CharacterState.level никогда не отставал от Progression.level.
 """
 from dndai.core.colors import GREEN, RESET
-from dndai.core.text import emoji
 from dndai.core.i18n import t
+from dndai.core.text import emoji
 
 
 def sync_levels(ctx, leveled):

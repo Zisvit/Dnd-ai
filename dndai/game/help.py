@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 from dndai.core.colors import (
-    GREEN,
     BLUE,
-    RED,
-    YELLOW,
     CYAN,
+    GREEN,
     ORANGE,
     PURPLE,
+    RED,
     RESET,
+    YELLOW,
     colorize,
 )
-from dndai.core.text import emoji
 from dndai.core.i18n import t
+from dndai.core.text import emoji
 
 
 def show_color_legend():
@@ -235,14 +235,14 @@ def test_colors():
 
 def show_models():
     """Список провайдеров и моделей по категориям (tier-таблицы)."""
-    from dndai.core.text import emoji
+    from dndai.api.openrouter import BLACKLIST, is_blocked
+    from dndai.core.config import PROVIDERS
     from dndai.core.task_types import (
-        ModelTier,
         PROVIDER_MODELS_BY_TIER,
         TIER_PROVIDER_PREFERENCE,
+        ModelTier,
     )
-    from dndai.core.config import PROVIDERS
-    from dndai.api.openrouter import BLACKLIST, is_blocked
+    from dndai.core.text import emoji
 
     active_names = {p["name"] for p in PROVIDERS}
     print(f"\n{CYAN}{emoji('🤖')} {t('help.providers_title')}{RESET}")

@@ -1,0 +1,12 @@
+{
+  "algorithm": "sha256",
+  "files": {
+    "combat.txt": "98e43283de33947d5b793ea23a710c3a5e0b2c90dd68b9e7793bdb29641ea6df",
+    "compress.txt": "ad8674cb88f65d90675434d7ed1e71da97e02608ef854da584490ad6046e02c3",
+    "detail_levels.txt": "12bb0a3b1bde98606ca8d92a203d463c0e7d73565dd6784ac3b5428c419de113",
+    "first_message.txt": "b9b43a77a5d19cce31143f87db441c8238bbfe7d5c1bded7935cbd5eb08213fc",
+    "jailbreak.txt": "c9681c76b93c67a344e64577e3712b6cf52dae568fa04f52ec7b201851aeefdb",
+    "refuse_patterns.txt": "26641146c07555493664f074df6fedf8aba0fc2a0b6525091efe3ba0e89c4568",
+    "system_prompt.txt": "2649ce27e707c1975dc62f3c6753718e26a514e57addce3e6b3accc8961f32b5"
+  }
+}

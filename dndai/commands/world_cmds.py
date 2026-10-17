@@ -4,11 +4,10 @@ import re
 
 from dndai.commands.context import GameContext
 from dndai.commands.result import CommandResult
-from dndai.game.world import parse_world_command, show_world, show_map, VOICE_TAGS
-from dndai.game.rpg import parse_npc_command
-from dndai.core.colors import GREEN, YELLOW, CYAN, RESET
-
+from dndai.core.colors import CYAN, GREEN, RESET, YELLOW
 from dndai.core.i18n import t
+from dndai.game.rpg import parse_npc_command
+from dndai.game.world import VOICE_TAGS, parse_world_command, show_map, show_world
 
 
 def npc_command(act, ctx: GameContext):
@@ -25,7 +24,7 @@ def npc_command(act, ctx: GameContext):
         return None
 
     # Удаление
-    m_del = re.match(r"(?i)!?\s*npc\s+(?:удал|del|rm)\s+(\S+)", act)
+    m_del = re.match(r"(?i)!?\s*npc\s+(?:удал(?:ить)?|del|rm)\s+(\S+)", act)
     if m_del:
         if ctx.npcs.remove(m_del.group(1)):
             ctx.persist()

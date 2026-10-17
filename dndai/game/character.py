@@ -6,7 +6,8 @@
 """
 
 import re
-from dndai.core.colors import GREEN, RED, YELLOW, CYAN, ORANGE, RESET
+
+from dndai.core.colors import CYAN, GREEN, ORANGE, RED, RESET, YELLOW
 from dndai.core.i18n import t
 
 # ── База известного снаряжения (частичное совпадение по имени) ──

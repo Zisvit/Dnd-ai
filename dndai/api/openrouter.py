@@ -21,23 +21,26 @@ import time
 from datetime import datetime, timedelta
 from typing import Optional
 
-from dndai.core.config import PROVIDERS, BLACKLIST_PATH, get_ollama_models
-from dndai.core.config.prompts import REFUSE_PATTERNS, DETAIL_LEVELS
-from dndai.core.logger import debug as log_debug, warning as log_warning
-from .client import get_session
-from .prompts import SYSTEM_PROMPT_TEMPLATE, FIRST_MESSAGE_PROMPT, JAILBREAK_PROMPT
-from dndai.core.i18n import t, variants as i18n_variants
+from dndai.core.config import BLACKLIST_PATH, PROVIDERS, get_ollama_models
+from dndai.core.config.prompts import DETAIL_LEVELS, REFUSE_PATTERNS
+from dndai.core.i18n import t
+from dndai.core.i18n import variants as i18n_variants
+from dndai.core.logger import debug as log_debug
+from dndai.core.logger import warning as log_warning
 from dndai.core.task_types import (
-    TaskType,
-    ModelTier,
-    TASK_DEFAULT_TIER,
-    TIER_PROVIDER_PREFERENCE,
     PROVIDER_MODELS_BY_TIER,
+    TASK_DEFAULT_TIER,
     TIER_FOR_COLOR,
+    TIER_PROVIDER_PREFERENCE,
+    ModelTier,
+    TaskType,
 )
 
+from .client import get_session
+from .prompts import FIRST_MESSAGE_PROMPT, JAILBREAK_PROMPT, SYSTEM_PROMPT_TEMPLATE
+
 fast_lock = threading.Lock()
-BLACKLIST = {}  # ключ: "Provider:model" -> datetime до которого заблокировано
+BLACKLIST: dict[str, datetime] = {}  # ключ: "Provider:model" -> datetime до которого заблокировано
 
 http_session = get_session()
 
@@ -50,7 +53,7 @@ JAILBREAK_MAX_TOKENS = 1500
 RETRY_DELAYS = (1.5, 4.0)
 
 # ── Подписчики на результаты запросов (статистика и т.п.) ────────────────
-_request_listeners = []
+_request_listeners: list = []
 
 
 def add_request_listener(fn):
@@ -81,18 +84,26 @@ def get_current_model() -> Optional[str]:
 
 
 def load_blacklist():
-    global BLACKLIST
+    """Перечитывает BLACKLIST с диска без перепривязки объекта.
+
+    Держатели ссылки (подписчики, тесты) видят обновление в том же dict;
+    попутно сбрасываются метки 401 — состояние полностью перечитано."""
     with fast_lock:
         if BLACKLIST_PATH.exists():
+            fresh = None
             try:
                 data = json.loads(BLACKLIST_PATH.read_text())
-                BLACKLIST = {
+                fresh = {
                     k: datetime.fromisoformat(v)
                     for k, v in data.items()
                     if datetime.fromisoformat(v) > datetime.now()
                 }
             except Exception:
                 pass
+            if fresh is not None:
+                BLACKLIST.clear()
+                BLACKLIST.update(fresh)
+        _auth_failed_until.clear()
 
 
 def save_blacklist():
@@ -111,10 +122,45 @@ def block_model(provider_name, model, minutes=180):
 
 
 def is_blocked(provider_name, model):
-    return (
-        f"{provider_name}:{model}" in BLACKLIST
-        and BLACKLIST[f"{provider_name}:{model}"] > datetime.now()
-    )
+    key = f"{provider_name}:{model}"
+    with fast_lock:
+        until = BLACKLIST.get(key)
+    return until is not None and until > datetime.now()
+
+
+# ── 401 fail-fast: неверный ключ — не бомбим провайдера его моделями ───
+AUTH_FAIL_TTL_MINUTES = 60  # сколько минут пропускать провайдера после 401
+_auth_failed_until: dict[str, datetime] = {}
+
+
+def _is_local_provider(provider_name: str) -> bool:
+    """Локальные провайдеры работают без ключа — 401 их не касается."""
+    return provider_name in ("Ollama", "Ollama-Server")
+
+
+def _mark_auth_failed(provider_name: str) -> None:
+    """Запоминает 401 провайдера: остальные его модели временно пропускаем."""
+    if _is_local_provider(provider_name):
+        return
+    with fast_lock:
+        _auth_failed_until[provider_name] = datetime.now() + timedelta(
+            minutes=AUTH_FAIL_TTL_MINUTES
+        )
+
+
+def _provider_auth_dead(provider_name: str) -> bool:
+    """True, если у провайдера недавний 401 — не тратим на него запросы."""
+    if _is_local_provider(provider_name):
+        return False
+    with fast_lock:
+        until = _auth_failed_until.get(provider_name)
+        if not until:
+            return False
+        if until <= datetime.now():
+            # метка истекла — ключ могли починить, пробуем заново
+            del _auth_failed_until[provider_name]
+            return False
+        return True
 
 
 def init_models():
@@ -202,7 +248,7 @@ def api_request(
     "network","refusal","empty","other"} — категория ошибки для резюме.
     Если stream=True — печатает ответ по токенам через on_token(chunk).
     """
-    from dndai.core.colors import YELLOW, RED, RESET
+    from dndai.core.colors import RED, RESET, YELLOW
 
     if not provider or (
         not provider.get("api_key")
@@ -290,6 +336,8 @@ def api_request(
                     kind = _classify(status)
                     if kind == "auth":
                         print(f"\n{RED}⚠️ [{provider['name']}] {err}{RESET}")
+                        if status == 401:
+                            _mark_auth_failed(provider["name"])
                         block_model(provider["name"], model, minutes=180)
                         _notify(provider["name"], 0, False)
                         return None, err, kind
@@ -337,6 +385,8 @@ def _do_streaming_request(provider, model, payload, headers, timeout, on_token):
         if r.status_code != 200:
             body = r.text
             status = r.status_code
+            if status == 401:
+                _mark_auth_failed(provider["name"])
             err = translate_api_error(status, body, headers=r.headers)
             return None, err, _classify(status)
 
@@ -593,7 +643,15 @@ def ask_dm(
     jail_msgs.extend(history)
 
     def _try_all(messages_, max_tokens, stream, label=""):
+        skipped_auth = set()
         for provider, model in _iter_providers_for_task(task_type, forced_model):
+            if _provider_auth_dead(provider["name"]):
+                if provider["name"] not in skipped_auth:
+                    skipped_auth.add(provider["name"])
+                    errors.append(
+                        (f"{provider['name']}{label}", t("api.auth_skipped"), "auth")
+                    )
+                continue
             ans, err, _kind = api_request(
                 provider, model, messages_, max_tokens, stream=stream, on_token=on_token
             )

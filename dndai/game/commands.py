@@ -9,7 +9,7 @@ PLAYER_NAME         — имя активного персонажа (для п�
 Фактическая модель последнего ответа живёт в api.openrouter
 (get_current_model) — это факт рантайма, а не предпочтение.
 """
-from dndai.core.colors import GREEN, YELLOW, CYAN, RESET
+from dndai.core.colors import CYAN, GREEN, RESET, YELLOW
 from dndai.core.i18n import t
 
 forced_model = None
@@ -43,9 +43,9 @@ def _mode_label():
 
 def _first_candidate():
     """(кандидат "prov:model", число заблокированных) для BALANCED tier."""
-    from dndai.core.task_types import ModelTier, TIER_PROVIDER_PREFERENCE
-    from dndai.core.config import PROVIDERS
     from dndai.api.openrouter import _get_models_for_tier, is_blocked
+    from dndai.core.config import PROVIDERS
+    from dndai.core.task_types import TIER_PROVIDER_PREFERENCE, ModelTier
 
     blocked_n = 0
     for prov_name in TIER_PROVIDER_PREFERENCE.get(ModelTier.BALANCED, []):

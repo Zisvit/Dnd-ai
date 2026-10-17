@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Тесты для core/output.py — clean()"""
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dndai.core.output import clean

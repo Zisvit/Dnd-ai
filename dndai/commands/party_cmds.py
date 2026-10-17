@@ -5,10 +5,9 @@ import re
 
 from dndai.commands.context import GameContext
 from dndai.commands.result import CommandResult
-from dndai.game.character import parse_character_command
-from dndai.core.colors import GREEN, YELLOW, CYAN, RESET
-
+from dndai.core.colors import CYAN, GREEN, RESET, YELLOW
 from dndai.core.i18n import t
+from dndai.game.character import parse_character_command
 
 
 def party_list(act, ctx: GameContext):

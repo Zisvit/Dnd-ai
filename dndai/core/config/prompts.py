@@ -12,7 +12,7 @@ def load_prompt(filename):
     """Возвращает текст промпта. Пустая строка — файл не найден."""
     path = get_prompts_dir() / filename
     if path.exists():
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return f.read()
     return ""
 
@@ -21,7 +21,7 @@ def load_refuse_patterns():
     patterns = []
     path = get_prompts_dir() / "refuse_patterns.txt"
     if path.exists():
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             patterns = [line.strip() for line in f if line.strip()]
     return patterns or [
         r"i'm sorry",
@@ -43,7 +43,7 @@ def load_detail_levels():
     levels = {}
     path = get_prompts_dir() / "detail_levels.txt"
     if path.exists():
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             for line in f:
                 if "|" in line:
                     key, val = line.strip().split("|", 1)

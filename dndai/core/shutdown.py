@@ -7,7 +7,8 @@ register_signals() из точки входа — импорт модуля не
 
 import signal
 from typing import Callable
-from .logger import info, error
+
+from .logger import error, info
 
 
 class ShutdownHandler:

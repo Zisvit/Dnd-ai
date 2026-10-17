@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+import logging
 import os
 import sys
-import logging
 import threading
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "WARNING").upper()

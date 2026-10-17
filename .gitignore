@@ -48,3 +48,12 @@ Thumbs.db
 
 # Кэш pytest
 .pytest_cache/
+
+# Покрытие и кэши инструментов проверки
+.coverage
+.coverage.*
+coverage.xml
+coverage.json
+htmlcov/
+.ruff_cache/
+.mypy_cache/

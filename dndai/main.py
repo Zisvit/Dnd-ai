@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """Главный игровой цикл D&D Cyberpunk Master Bot"""
 
-import sys
+import argparse
+import atexit
+import json
 import os
 import re
-import atexit
-import argparse
 import shutil
+import sys
+from datetime import datetime
 
 # Стрелки ↑↓ и редактирование строки ввода (история переживает перезапуск)
 try:
     import readline
 except ImportError:
-    readline = None
+    readline = None  # type: ignore[assignment]
 
 # Гарантируем UTF-8 вывод (кириллица) даже если локаль/pipe не UTF-8
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
@@ -23,56 +25,58 @@ try:
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 except Exception:
     pass
+import dndai.game.commands as commands
 from dndai import __version__
+from dndai.api.openrouter import ask_dm, get_current_model, init_models
+from dndai.api.prompts import SYSTEM_PROMPT_TEMPLATE
+from dndai.commands import GameContext, dispatch
+from dndai.core.colors import BLUE, CYAN, GREEN, ORANGE, PURPLE, RED, RESET, YELLOW
 from dndai.core.config import (
     API_KEYS,
     DATA_DIR,
+    SESSION_DIR,
+    STREAM_MODE,
     app_home,
     ensure_home,
     get_prompts_dir,
     migrate_legacy_data,
     package_prompts_dir,
 )
-from dndai.core.colors import GREEN, BLUE, RED, YELLOW, CYAN, ORANGE, PURPLE, RESET
-from dndai.core.output import slow_print, StreamingPrinter
-from dndai.core.text import clean, highlight, format_paragraphs, emoji
+from dndai.core.config.prompt_integrity import verify_prompts
 from dndai.core.dice import roll_dice
-from dndai.core.models import shutdown_models
-from dndai.core.shutdown import shutdown_handler
-from dndai.core.logger import info, error, critical
 from dndai.core.i18n import t
-from dndai.api.openrouter import init_models, ask_dm, get_current_model
-from dndai.api.prompts import SYSTEM_PROMPT_TEMPLATE
-from dndai.core.config import STREAM_MODE
+from dndai.core.logger import critical, error, info
+from dndai.core.models import shutdown_models
+from dndai.core.output import StreamingPrinter, slow_print
+from dndai.core.shutdown import shutdown_handler
 from dndai.core.task_types import TaskType
-from dndai.game.session import (
-    load_game_session,
-    get_player_name_from_history,
-    compress_if_needed,
-    save_game_session,
-    rollback_session,
-    backup_session,
-    archive_log,
-)
-from dndai.game.commands import set_globals, show_dm_status, clear_history_and_exit
+from dndai.core.text import clean, emoji, format_paragraphs, highlight
 from dndai.game.character import CharacterState, sync_with_progression
-from dndai.game.world import WorldState
+from dndai.game.commands import clear_history_and_exit, set_globals, show_dm_status
 from dndai.game.party import Party
 from dndai.game.rpg import (
-    SpellBook,
-    Progression,
-    StatusEffects,
-    Quests,
-    NPCs,
-    TimeWeather,
+    Enemies,
     Journal,
     Macros,
-    Style,
-    Enemies,
+    NPCs,
+    Progression,
+    Quests,
     Reputation,
+    SpellBook,
+    StatusEffects,
+    Style,
+    TimeWeather,
 )
-from dndai.commands import dispatch, GameContext
-import dndai.game.commands as commands
+from dndai.game.session import (
+    archive_log,
+    backup_session,
+    compress_if_needed,
+    get_player_name_from_history,
+    load_game_session,
+    rollback_session,
+    save_game_session,
+)
+from dndai.game.world import WorldState
 
 shutdown_handler.register(shutdown_models)
 
@@ -268,7 +272,7 @@ def roll_stat():
 
 def select_or_create_character():
     """Меню выбора/создания персонажа при первом запуске сессии."""
-    from dndai.game.character import RACES, apply_race_bonuses, apply_class_kit
+    from dndai.game.character import RACES, apply_class_kit, apply_race_bonuses
 
     print(f"{CYAN}{t('main.char_creation')}{RESET}")
     print(f"  {YELLOW}{t('main.char_name_prompt')}{RESET}")
@@ -395,6 +399,11 @@ def _parse_args(argv=None):
         action="store_true",
         help="скопировать промпты пакета в ~/.dnd_ai/prompts для правки",
     )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="показать сохранённые сессии и выйти",
+    )
     return parser.parse_args(argv)
 
 
@@ -425,6 +434,50 @@ def _copy_prompts():
     return 0
 
 
+def _human_size(n):
+    """Байты -> человекочитаемый размер (1024-основание)."""
+    size = float(n)
+    for unit in ("B", "KiB", "MiB", "GiB"):
+        if size < 1024 or unit == "GiB":
+            break
+        size /= 1024
+    return f"{int(size)} B" if unit == "B" else f"{size:.1f} {unit}"
+
+
+def _list_sessions():
+    """`--list`: сохранённые сессии (свежие сверху, до 50) и выход."""
+    rows = []
+    for f in SESSION_DIR.glob("*.json"):
+        try:
+            st = f.stat()
+        except OSError:
+            continue
+        rows.append((st.st_mtime, f, st.st_size))
+    if not rows:
+        print(t("main.list_empty"))
+        return 0
+    rows.sort(key=lambda item: (item[0], item[1].name), reverse=True)
+    print(t("main.list_title", n=len(rows)))
+    for mtime, f, size in rows[:50]:
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+            msgs = str(len(data.get("history", [])))
+        except Exception:
+            msgs = "?"  # битый файл — показываем, но не роняем список
+        print(
+            t(
+                "main.list_row",
+                name=f.stem,
+                msgs=msgs,
+                size=_human_size(size),
+                date=datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M"),
+            )
+        )
+    if len(rows) > 50:
+        print(t("main.list_more", n=len(rows) - 50))
+    return 0
+
+
 def main(argv=None):
     """Точка входа.
 
@@ -435,6 +488,9 @@ def main(argv=None):
 
     if args.copy_prompts:
         return _copy_prompts()
+
+    if args.list:
+        return _list_sessions()
 
     show_logo()
 
@@ -453,6 +509,10 @@ def main(argv=None):
             f"{YELLOW}⚠️  Промпт мастера не найден — проверьте каталог: "
             f"{get_prompts_dir()}{RESET}"
         )
+
+    integrity_problems = verify_prompts()
+    if integrity_problems:
+        print(f"{YELLOW}{t('main.prompts_corrupt', n=len(integrity_problems))}{RESET}")
 
     if not check_api_keys():
         return 2

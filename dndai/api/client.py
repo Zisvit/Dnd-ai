@@ -6,7 +6,6 @@
 """
 import requests
 
-
 http_session = requests.Session()
 
 

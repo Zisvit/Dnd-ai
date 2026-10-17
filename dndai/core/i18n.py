@@ -137,6 +137,26 @@ _T: dict[str, dict[str, str]] = {
         "ru": "✅ Сессия сохранена. До встречи!",
         "en": "✅ Session saved. See you!",
     },
+    "main.list_empty": {
+        "ru": "Сессий пока нет.",
+        "en": "No sessions yet.",
+    },
+    "main.list_title": {
+        "ru": "Сессии ({n}):",
+        "en": "Sessions ({n}):",
+    },
+    "main.list_row": {
+        "ru": "  {name} — сообщений: {msgs}, {size}, {date}",
+        "en": "  {name} — messages: {msgs}, {size}, {date}",
+    },
+    "main.list_more": {
+        "ru": "… и ещё {n} (показаны первые 50)",
+        "en": "… and {n} more (first 50 shown)",
+    },
+    "main.prompts_corrupt": {
+        "ru": "⚠️ Промпты изменены относительно манифеста ({n} шт.) — проверьте целостность",
+        "en": "⚠️ Prompts differ from the integrity manifest ({n}) — check installation",
+    },
     # ── api/openrouter.py ────────────────────────────────────────────────
     "api.no_provider_key": {
         "ru": "❌ У провайдера нет API-ключа.",
@@ -149,6 +169,10 @@ _T: dict[str, dict[str, str]] = {
     "api.error_401": {
         "ru": "❌ Неверный или просроченный API-ключ. Проверьте ключи в .env.",
         "en": "❌ Invalid or expired API key. Check your .env keys.",
+    },
+    "api.auth_skipped": {
+        "ru": "⏭️ Недавняя ошибка 401 — провайдер временно пропускается.",
+        "en": "⏭️ Recent 401 error — provider temporarily skipped.",
     },
     "api.error_403": {
         "ru": "❌ Доступ запрещён. У аккаунта нет прав на эту модель или ключ заблокирован.",

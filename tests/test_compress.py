@@ -6,15 +6,15 @@
 связал бы функцию, а не модуль.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import importlib
 
 compress_mod = importlib.import_module("dndai.scripts.compress")
-from dndai.core.task_types import TaskType, ModelTier
+from dndai.core.task_types import ModelTier, TaskType
 
 H6 = [
     {"role": "user", "content": "вхожу в <<Таверну>> и ищу бармена"},

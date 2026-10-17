@@ -2,28 +2,28 @@
 """Тесты диспетчера команд: порядок HANDLERS, категории, детализация,
 квесты через dispatch, регрессии конфликтов."""
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import dndai.game.commands as game_commands
-from dndai.commands import dispatch, GameContext
+from dndai.commands import GameContext, dispatch
 from dndai.game.character import CharacterState
-from dndai.game.world import WorldState
 from dndai.game.rpg import (
-    SpellBook,
-    Progression,
-    StatusEffects,
-    Quests,
-    NPCs,
-    TimeWeather,
+    Enemies,
     Journal,
     Macros,
-    Style,
-    Enemies,
+    NPCs,
+    Progression,
+    Quests,
     Reputation,
+    SpellBook,
+    StatusEffects,
+    Style,
+    TimeWeather,
 )
+from dndai.game.world import WorldState
 
 
 def make_ctx():

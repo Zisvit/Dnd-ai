@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Тесты для core/text.py — highlight(), format_paragraphs()"""
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from dndai.core.text import highlight, format_paragraphs
+from dndai.core.text import format_paragraphs, highlight
 
 
 def test_highlight_npc():

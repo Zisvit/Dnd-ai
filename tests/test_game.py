@@ -1,33 +1,32 @@
 #!/usr/bin/env python3
 """Тесты для game/session.py, game/party.py, game/world.py, game/rpg.py"""
 
-import sys
 import os
+import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from dndai.game.character import CharacterState
+from dndai.game.party import Party
+from dndai.game.rpg import (
+    Macros,
+    Progression,
+    Quests,
+    SpellBook,
+    StatusEffects,
+    TimeWeather,
+    parse_macro_command,
+    parse_quest_command,
+    parse_spell_command,
+)
 from dndai.game.session import (
-    load_game_session,
-    save_game_session,
     compress_if_needed,
     get_player_name_from_history,
+    load_game_session,
+    save_game_session,
 )
-from dndai.game.party import Party
 from dndai.game.world import WorldState
-from dndai.game.character import CharacterState
-from dndai.game.rpg import (
-    SpellBook,
-    Progression,
-    StatusEffects,
-    Quests,
-    TimeWeather,
-    Macros,
-    parse_spell_command,
-    parse_quest_command,
-    parse_macro_command,
-)
-
 
 # ── Party ──
 

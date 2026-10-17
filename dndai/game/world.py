@@ -6,8 +6,8 @@
 """
 
 import re
-from dndai.core.colors import GREEN, YELLOW, CYAN, RESET
 
+from dndai.core.colors import CYAN, GREEN, RESET, YELLOW
 from dndai.core.i18n import t
 
 # Голоса NPC: какой стиль "озвучки". Бот задаёт стиль в промпте,

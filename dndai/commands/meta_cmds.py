@@ -4,14 +4,12 @@
 
 import re
 
+import dndai.game.commands as commands_module
 from dndai.commands.context import GameContext
 from dndai.commands.result import CommandResult
-from dndai.core.colors import GREEN, RED, YELLOW, CYAN, BLUE, ORANGE, RESET
-from dndai.core.text import emoji
-from dndai.core.text import set_emoji_enabled
-from dndai.core.i18n import t, set_lang
-import dndai.game.commands as commands_module
-
+from dndai.core.colors import BLUE, CYAN, GREEN, ORANGE, RED, RESET, YELLOW
+from dndai.core.i18n import set_lang, t
+from dndai.core.text import emoji, set_emoji_enabled
 
 # Предопределённые архетипы классов для подсказки
 CLASS_ARCHETYPES = {
@@ -337,8 +335,8 @@ def model_command(act, ctx: GameContext):
     """Переключение модели/провайдера: /model ollama, /model groq,
     /model auto, /model <provider[:model]>, /model (показать текущую)"""
     import dndai.game.commands as commands_module
+    from dndai.api.openrouter import get_current_model, set_current_model
     from dndai.core.config import PROVIDERS
-    from dndai.api.openrouter import set_current_model, get_current_model
 
     m = re.match(r"(?i)^(?:/model|/модель)(?:\s+(.+))?$", act.strip())
     if not m:
@@ -414,8 +412,8 @@ def model_command(act, ctx: GameContext):
             )
     else:
         # Берём первую предпочтительную модель для NARRATIVE (BALANCED tier)
-        from dndai.core.task_types import ModelTier
         from dndai.api.openrouter import _get_models_for_tier
+        from dndai.core.task_types import ModelTier
 
         models = _get_models_for_tier(provider["name"], ModelTier.BALANCED)
         if models:

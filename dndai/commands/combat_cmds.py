@@ -6,10 +6,10 @@ import re
 
 from dndai.commands.context import GameContext
 from dndai.commands.result import CommandResult
-from dndai.core.colors import BLUE, RED, GREEN, YELLOW, RESET
-from dndai.core.text import emoji
-from dndai.core.i18n import t
+from dndai.core.colors import BLUE, GREEN, RED, RESET, YELLOW
 from dndai.core.dice import roll_dice
+from dndai.core.i18n import t
+from dndai.core.text import emoji
 
 
 def save_command(act, ctx: GameContext):
@@ -255,7 +255,7 @@ def cast_command(act, ctx: GameContext):
     if not ctx.spells.use_slot():
         return CommandResult(f"{YELLOW}{t('rpg.no_slots')}{RESET}")
 
-    from dndai.game.rpg import is_heal_spell, heal_dice
+    from dndai.game.rpg import heal_dice, is_heal_spell
     char = ctx.character
     lines = [f"{BLUE}{emoji('✨')} {t('rpg.cast_ok', name=spell['name'], left=ctx.spells.slots_left)}{RESET}"]
 
@@ -294,8 +294,8 @@ def cast_command(act, ctx: GameContext):
 
     tgt_state = ""
     if is_heal_spell(spell):
-        tgt_state = ("Игрок восстановил {amt} HP (теперь {hp}/{max_hp}). "
-                     .format(amt=healed, hp=char.hp, max_hp=char.max_hp))
+        tgt_state = (f"Игрок восстановил {healed} HP (теперь {char.hp}/{char.max_hp}). "
+                     )
     elif target and applied:
         tgt_state = (f"Цель {target['name']}: получено {applied} урона"
                      + ("ЦЕЛЬ ПОВЕРЖЕНА. " if killed else

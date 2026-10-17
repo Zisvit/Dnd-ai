@@ -37,7 +37,7 @@ TIER_PROVIDER_PREFERENCE = {
 }
 
 # Модели по tier для каждого провайдера
-PROVIDER_MODELS_BY_TIER = {
+PROVIDER_MODELS_BY_TIER: dict[str, dict[ModelTier, list[str]]] = {
     "Groq": {
         ModelTier.FAST: [
             "groq/compound-mini",

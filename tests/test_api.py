@@ -10,8 +10,8 @@
   до фикса падают.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -23,7 +23,7 @@ import pytest
 
 orouter = importlib.import_module("dndai.api.openrouter")
 from dndai.core.i18n import t
-from dndai.core.task_types import TaskType, ModelTier
+from dndai.core.task_types import ModelTier, TaskType
 
 PROV = {
     "name": "TestProv",
@@ -105,7 +105,7 @@ def sse_content(chunk):
     payload = json.dumps(
         {"choices": [{"delta": {"content": chunk}}]}, ensure_ascii=False
     )
-    return f"data: {payload}".encode("utf-8")
+    return f"data: {payload}".encode()
 
 
 DONE = b"data: [DONE]"
@@ -115,8 +115,7 @@ def break_after(*chunks, exc=None):
     """Функция-генератор строк, падающая «сетевым» исключением после chunks."""
 
     def gen():
-        for c in chunks:
-            yield c
+        yield from chunks
         raise exc or ConnectionError("обрыв соединения")
 
     return gen
@@ -129,6 +128,7 @@ def isolate_orouter(monkeypatch, tmp_path):
     monkeypatch.setattr(orouter, "BLACKLIST", {})
     monkeypatch.setattr(orouter, "BLACKLIST_PATH", tmp_path / "blacklist.json")
     monkeypatch.setattr(orouter, "_request_listeners", [])
+    monkeypatch.setattr(orouter, "_auth_failed_until", {})
     monkeypatch.setattr(orouter, "http_session", FakeSession([]))
     monkeypatch.setattr(orouter.time, "sleep", lambda *_: None)
     yield
@@ -177,7 +177,7 @@ def test_translate_api_error_429_reset_from_headers_and_body():
     )
     # время сброса в теле ответа
     assert (
-        orouter.translate_api_error(429, body='{"X-RateLimit-Reset": %d}' % ts)
+        orouter.translate_api_error(429, body=f'{{"X-RateLimit-Reset": {ts}}}')
         == expected
     )
 
@@ -534,7 +534,7 @@ def test_stream_break_after_content_does_not_retry(monkeypatch):
 
 def _break_instant():
     raise ConnectionError("обрыв до первого байта")
-    yield b""  # noqa: недостижимо — делает функцию генератором
+    yield b""  # недостижимо — делает функцию генератором
 
 
 def test_stream_break_before_first_byte_retries(monkeypatch):
@@ -837,3 +837,71 @@ def test_ask_dm_error_summary_by_kind(monkeypatch, kind, key):
     )
     assert (text, model, streamed) == (None, None, False)
     assert err == t(key)
+
+
+# ── 401 fail-fast: неверный ключ — провайдер временно пропускается ───────
+
+
+def test_auth_fail_marks_provider_on_401(monkeypatch):
+    session = FakeSession([FakeResponse(401, text="unauthorized")])
+    monkeypatch.setattr(orouter, "http_session", session)
+    text, err, kind = orouter.api_request(PROV, "m1", [])
+    assert text is None
+    assert kind == "auth"
+    assert err
+    assert orouter._provider_auth_dead(PROV["name"]) is True
+
+
+def test_auth_fail_not_marked_on_403(monkeypatch):
+    session = FakeSession([FakeResponse(403, text="forbidden")])
+    monkeypatch.setattr(orouter, "http_session", session)
+    text, err, kind = orouter.api_request(PROV, "m1", [])
+    assert text is None
+    assert kind == "auth"
+    assert orouter._provider_auth_dead(PROV["name"]) is False
+
+
+def test_auth_fail_marked_on_streaming_401(monkeypatch):
+    session = FakeSession([FakeResponse(401, text="unauthorized")])
+    monkeypatch.setattr(orouter, "http_session", session)
+    text, err, kind = orouter.api_request(PROV, "m1", [], stream=True)
+    assert text is None
+    assert kind == "auth"
+    assert orouter._provider_auth_dead(PROV["name"]) is True
+
+
+def test_auth_fail_ttl_expires(monkeypatch):
+    expired = datetime.datetime.now() - datetime.timedelta(seconds=1)
+    monkeypatch.setattr(orouter, "_auth_failed_until", {PROV["name"]: expired})
+    assert orouter._provider_auth_dead(PROV["name"]) is False
+    # истёкшая метка почищена — следующая попытка снова возможна
+    assert PROV["name"] not in orouter._auth_failed_until
+
+
+def test_auth_fail_skips_dead_provider_others_still_tried(monkeypatch):
+    """401 у Groq: его модели не пробуем, OpenRouter пробуем по-прежнему."""
+    _patch_tier_tables(monkeypatch)
+    monkeypatch.setattr(
+        orouter,
+        "_auth_failed_until",
+        {"Groq": datetime.datetime.now() + datetime.timedelta(minutes=5)},
+    )
+    calls = []
+
+    def fake_api_request(provider, model, *a, **kw):
+        calls.append((provider["name"], model))
+        return "ответ", None, None
+
+    monkeypatch.setattr(orouter, "api_request", fake_api_request)
+    ans, model, err, _stream = orouter.ask_dm(
+        [{"role": "user", "content": "иду к выходу"}], ""
+    )
+    assert (ans, err) == ("ответ", None)
+    assert calls == [("OpenRouter", "or-small")]
+
+
+def test_auth_fail_local_providers_never_marked(monkeypatch):
+    orouter._mark_auth_failed("Ollama")
+    orouter._mark_auth_failed("Ollama-Server")
+    assert orouter._auth_failed_until == {}
+    assert orouter._provider_auth_dead("Ollama") is False

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import re
 import random
+import re
 
 # Строка целиком является dice-выражением: 2d6, d20, 1d20+5, 3d8-2
 _DICE_RE = re.compile(r'(?i)^\s*(\d*)\s*d\s*(\d+)\s*([+-]\s*\d+)?\s*$')

@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 import re
-from .colors import GREEN, BLUE, YELLOW, CYAN, ORANGE, PURPLE, RESET
-from .output import ANSI_ESCAPE, clean
+
+from .colors import BLUE, CYAN, GREEN, ORANGE, PURPLE, RESET, YELLOW
+from .output import ANSI_ESCAPE
+from .output import clean as clean
+
 
 def highlight(text):
     """
@@ -26,22 +29,22 @@ def highlight(text):
 
     # {{Персонажи}} — голубой (NPC, имена)
     text = re.sub(r'\{\{([^}]+)\}\}', CYAN + r'\1' + RESET, text)
-    
+
     # <<Места>> — жёлтый (локации)
     text = re.sub(r'<<([^>]+)>>', YELLOW + r'\1' + RESET, text)
-    
+
     # [[Предметы]] — оранжевый (важные вещи)
     text = re.sub(r'\[\[([^]]+)\]\]', ORANGE + r'\1' + RESET, text)
-    
+
     # __События__ — фиолетовый (повороты сюжета)
     text = re.sub(r'__([^_]+)__', PURPLE + r'\1' + RESET, text)
-    
+
     # !!Эмоции!! — зелёный (чувства)
     text = re.sub(r'!!([^!]+)!!', GREEN + r'\1' + RESET, text)
-    
+
     # "Диалоги" — синий (речь)
     text = re.sub(r'"([^"]+)"', BLUE + r'"\1"' + RESET, text)
-    
+
     return text
 
 from .config.settings import EMOJI

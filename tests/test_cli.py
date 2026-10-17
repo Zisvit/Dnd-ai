@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """CLI: версия, страж CHANGELOG, --copy-prompts, сообщение о ключах."""
 
+import json
 import re
 from pathlib import Path
 
 import pytest
 
 import dndai
+from dndai.core.i18n import t
 from dndai.main import _valid_session_name, check_api_keys, main
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -73,3 +75,52 @@ def test_invalid_session_name_exit_code(capsys, monkeypatch):
     monkeypatch.setattr("dndai.main.API_KEYS", ["dummy"])
     assert main(["../bad"]) == 2
     assert "Недопустимое имя сессии" in capsys.readouterr().out
+
+
+def test_list_sessions_empty(capsys, monkeypatch, tmp_path):
+    monkeypatch.setattr("dndai.main.SESSION_DIR", tmp_path)
+    assert main(["--list"]) == 0
+    out = capsys.readouterr().out
+    assert t("main.list_empty") in out
+
+
+def test_list_sessions_shows_rows_and_broken(capsys, monkeypatch, tmp_path):
+    (tmp_path / "alpha.json").write_text(
+        json.dumps({"history": [{"role": "user", "content": "hi"}]}),
+        encoding="utf-8",
+    )
+    (tmp_path / "broken.json").write_text("{oops", encoding="utf-8")
+    # >1 KiB — проверить человекочитаемый размер
+    (tmp_path / "big.json").write_text(
+        json.dumps({"history": [], "pad": "x" * 2048}), encoding="utf-8"
+    )
+    monkeypatch.setattr("dndai.main.SESSION_DIR", tmp_path)
+    assert main(["--list"]) == 0
+    out = capsys.readouterr().out
+    assert t("main.list_title", n=3) in out
+    assert "alpha" in out and "broken" in out and "big" in out
+    assert "?" in out  # битый файл: число сообщений неизвестно
+    assert "KiB" in out
+
+
+def test_list_sessions_truncates_to_50(capsys, monkeypatch, tmp_path):
+    for i in range(55):
+        (tmp_path / f"s{i:02d}.json").write_text('{"history": []}', encoding="utf-8")
+    monkeypatch.setattr("dndai.main.SESSION_DIR", tmp_path)
+    assert main(["--list"]) == 0
+    out = capsys.readouterr().out
+    assert t("main.list_more", n=5) in out
+    assert "s54" in out  # свежие сверху, показаны s54..s05
+    assert "s04" not in out
+
+
+def test_prompts_integrity_warning(capsys, monkeypatch):
+    monkeypatch.setattr(
+        "dndai.main.verify_prompts", lambda: ["sha256 не совпадает: a.txt"]
+    )
+    monkeypatch.setattr("dndai.main.API_KEYS", [])
+    monkeypatch.delenv("OLLAMA_SERVER_URL", raising=False)
+    monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
+    assert main([]) == 2
+    out = capsys.readouterr().out
+    assert t("main.prompts_corrupt", n=1) in out

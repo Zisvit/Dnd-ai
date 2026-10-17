@@ -23,7 +23,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7"]
+dev = ["pytest>=7", "pytest-cov>=4"]
+# Линтеры — отдельным extra: mypy 2.4 требует Python >=3.10 и не должен
+# ставиться в тестовый job матрицы 3.9 (см. .github/workflows/test.yml).
+lint = ["ruff==0.17.1", "mypy==2.4.0"]
 
 [project.scripts]
 dndd = "dndai.main:main"
@@ -35,10 +38,61 @@ Repository = "https://github.com/Zisvit/Dnd-ai"
 include = ["dndai*"]
 
 [tool.setuptools.package-data]
-dndai = ["prompts/*.txt"]
+dndai = ["prompts/*.txt", "prompts/*.json"]
 
 [tool.setuptools.dynamic]
 version = { attr = "dndai.__version__" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# ── Ruff: явный select, не полагаемся на дефолты версии ──────────────
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+extend-exclude = ["build", "dist", "dnd_sessions", "data"]
+
+[tool.ruff.lint]
+# FA102 страхует от PEP 604-аннотаций без `from __future__ import
+# annotations`: на Python 3.9 такие аннотации падают в момент импорта.
+select = ["E4", "E7", "E9", "F", "W", "B", "UP", "I", "FA102"]
+
+[tool.ruff.lint.per-file-ignores]
+# Фасады со star-импортами: автосортировка импортов может поменять
+# победителя при коллизии имён (см. комментарий в dndai/api/__init__.py).
+"dndai/api/__init__.py" = ["F401", "F403", "F405", "I001"]
+"dndai/core/__init__.py" = ["F401", "F403", "F405", "I001"]
+"dndai/core/config/__init__.py" = ["F401", "F403", "F405", "I001"]
+"dndai/game/__init__.py" = ["F401", "F403", "F405", "I001"]
+# text.py: импорт EMOJI ниже кода — разрыв цикла config <-> text.
+"dndai/core/text.py" = ["E402"]
+# tests: sys.path настраивается до импортов пакета.
+"tests/*" = ["E402"]
+
+# ── Mypy ──────────────────────────────────────────────────────────────
+# python_version=3.10 — вынужденно: mypy 2.4 не умеет таргет 3.9.
+# Совместимость с 3.9 держат ruff (target py39 + FA102) и тесты CI на 3.9.
+[tool.mypy]
+python_version = "3.10"
+files = ["dndai"]
+show_error_codes = true
+warn_unused_ignores = true
+exclude = ["build/", "dist/"]
+
+# ── Coverage ──────────────────────────────────────────────────────────
+[tool.coverage.run]
+source = ["dndai"]
+branch = false
+
+[tool.coverage.report]
+# Факт после расширения сьюта: 70.9% (Python 3.13). Порог — с запасом
+# на разницу версий в CI-матрице 3.9/3.13.
+fail_under = 65
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@overload",
+]

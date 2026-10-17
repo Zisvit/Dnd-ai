@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-import sys
 import re
+import sys
 import time
-from .config import TERM_WIDTH, OUTPUT_DELAY
+
 from .colors import RESET
+from .config import OUTPUT_DELAY, TERM_WIDTH
 
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 

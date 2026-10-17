@@ -2,17 +2,17 @@
 """Локальная суммаризация истории — быстрая и бесплатная"""
 
 import re
-from typing import Optional
+from typing import Any, Optional
 
-from dndai.core.task_types import TaskType
 from dndai.api.openrouter import api_request
 from dndai.api.prompts import COMPRESS_PROMPT
 from dndai.core.config import PROVIDERS
+from dndai.core.task_types import TaskType
 
 
 def extract_key_facts(history: list[dict]) -> dict:
     """Извлекает ключевые факты из истории без LLM"""
-    facts = {
+    facts: dict[str, Any] = {
         "locations": set(),
         "npcs": set(),
         "items": set(),
@@ -98,7 +98,12 @@ def compress_local(history: list[dict]) -> Optional[str]:
 
 def compress_via_api(history: list[dict], task_type: TaskType = TaskType.SIMPLE) -> Optional[str]:
     """Суммаризация через API с приоритетом быстрых моделей"""
-    from dndai.core.task_types import TIER_PROVIDER_PREFERENCE, PROVIDER_MODELS_BY_TIER, ModelTier, TASK_DEFAULT_TIER
+    from dndai.core.task_types import (
+        PROVIDER_MODELS_BY_TIER,
+        TASK_DEFAULT_TIER,
+        TIER_PROVIDER_PREFERENCE,
+        ModelTier,
+    )
 
     tier = TASK_DEFAULT_TIER.get(task_type, ModelTier.FAST)
     preferred_providers = TIER_PROVIDER_PREFERENCE.get(tier, ["Groq", "Gemini", "OpenRouter"])

@@ -12,11 +12,11 @@ import json
 import re
 import shutil
 
-from ..core.config import SESSION_DIR
 from ..core.atomic import atomic_write
-from ..core.text import clean, highlight
-from ..core.colors import YELLOW, RESET
+from ..core.colors import RESET, YELLOW
+from ..core.config import SESSION_DIR
 from ..core.logger import warning as _log_warning
+from ..core.text import clean, highlight
 
 SCHEMA_VERSION = 2
 
@@ -206,7 +206,7 @@ def compress_if_needed(history, session_name, character=None, old_summary=""):
 
 
 def show_history(history, player_name):
-    from ..core.colors import GREEN, BLUE, RESET
+    from ..core.colors import BLUE, GREEN, RESET
 
     for m in history:
         role = (

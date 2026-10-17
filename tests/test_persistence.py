@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """Тесты персистентности: schema_version, повторяемый откат,
 атомарная хроника. Всё пишется во временную папку."""
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 
 import dndai.game.session as session_mod
-from dndai.game.session import (save_game_session, load_game_session,
-                              backup_session, rollback_session,
-                              export_chronicle)
+from dndai.game.session import (
+    backup_session,
+    export_chronicle,
+    load_game_session,
+    rollback_session,
+    save_game_session,
+)
 
 
 def use_tmp_dir(monkeypatch, tmp_path):
