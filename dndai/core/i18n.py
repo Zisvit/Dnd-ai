@@ -705,6 +705,32 @@ _T: dict[str, dict[str, str]] = {
         "ru": "🗺 Локации связаны: {a} ↔ {b}",
         "en": "🗺 Locations linked: {a} ↔ {b}",
     },
+    "world.goto_blocked": {
+        "ru": "🚫 <<{target}>> не в одном шаге отсюда. Можно: {list}",
+        "en": "🚫 <<{target}>> is not one step away. Available: {list}",
+    },
+    "world.goto_no_exits": {
+        "ru": "🚫 <<{target}>> не в одном шаге отсюда; ходов нет. Задайте связи "
+              "(!связь) или точки (!место).",
+        "en": "🚫 <<{target}>> is not one step away; no exits. Set links "
+              "(!связь) or points (!место).",
+    },
+    "world.place_set": {
+        "ru": "📍 «{a}» теперь внутри «{b}» — уровень: {scale}",
+        "en": "📍 «{a}» is now inside «{b}» — level: {scale}",
+    },
+    "world.place_level_set": {
+        "ru": "📍 Уровень «{a}»: {scale}",
+        "en": "📍 Level «{a}»: {scale}",
+    },
+    "world.place_cycle": {
+        "ru": "🚫 «{a}» внутри «{b}» нельзя: цикл или совпадение.",
+        "en": "🚫 Cannot place «{a}» inside «{b}»: cycle or same name.",
+    },
+    "world.place_bad": {
+        "ru": "Не удалось задать уровень (нужны точка и метка).",
+        "en": "Failed to set level (spot and label required).",
+    },
     # ── game/help.py ─────────────────────────────────────────────────────
     "help.title": {
         "ru": "🎲 Системные команды:",
@@ -877,6 +903,14 @@ _T: dict[str, dict[str, str]] = {
     "help.map_show": {
         "ru": "показать карту",
         "en": "    !map – show map",
+    },
+    "help.place": {
+        "ru": "вложить точку в место (уровень выводится или явный)",
+        "en": "nest a spot into a place (level inferred or explicit)",
+    },
+    "help.map_zoom": {
+        "ru": "зум обзора: вверх/вниз/+/-/<уровень>/всё",
+        "en": "view zoom: up/down/+/-/<level>/all",
     },
     "help.journal_add": {
         "ru": "добавить запись в дневник",
@@ -1253,6 +1287,85 @@ _T: dict[str, dict[str, str]] = {
     "world.map_links": {
         "ru": "Связи:",
         "en": "Links:",
+    },
+    # ── карта v1: уровни, зум, рендер ───────────────────────────────────
+    "world.scale_building": {
+        "ru": "строение",
+        "en": "building",
+    },
+    "world.scale_quarter": {
+        "ru": "квартал",
+        "en": "quarter",
+    },
+    "world.scale_city": {
+        "ru": "город",
+        "en": "city",
+    },
+    "world.scale_country": {
+        "ru": "страна",
+        "en": "country",
+    },
+    "world.scale_planet": {
+        "ru": "планета",
+        "en": "planet",
+    },
+    "world.scale_system": {
+        "ru": "система",
+        "en": "system",
+    },
+    "world.scale_galaxy": {
+        "ru": "галактика",
+        "en": "galaxy",
+    },
+    "world.map_level_title": {
+        "ru": "🗺 КАРТА · {level}",
+        "en": "🗺 MAP · {level}",
+    },
+    "world.map_all_title": {
+        "ru": "🗺 ВСЯ КАРТА (ветка игрока)",
+        "en": "🗺 FULL MAP (player branch)",
+    },
+    "world.map_here": {
+        "ru": "◂ вы здесь",
+        "en": "◂ you are here",
+    },
+    "world.map_points": {
+        "ru": "Точки уровня:",
+        "en": "Level points:",
+    },
+    "world.map_more": {
+        "ru": "… и ещё {n}",
+        "en": "… and {n} more",
+    },
+    "world.map_down": {
+        "ru": "↓ внутри: {n}",
+        "en": "↓ inside: {n}",
+    },
+    "world.map_hint": {
+        "ru": "!карта вверх | вниз | всё",
+        "en": "!map up | down | all",
+    },
+    "world.map_cross": {
+        "ru": "Переходы:",
+        "en": "Passes:",
+    },
+    "world.map_level_missing": {
+        "ru": "На уровне «{level}» в ветке пока пусто.",
+        "en": "Nothing at level «{level}» in your branch yet.",
+    },
+    "world.map_level_unknown": {
+        "ru": "Неизвестный уровень: {value}. Доступно: {list}",
+        "en": "Unknown level: {value}. Available: {list}",
+    },
+    "world.map_zoom_none": {
+        "ru": "Уровень обзора не задан — задайте уровни точкам: !место <точка> "
+              "уровень <метка>",
+        "en": "No view level yet — set levels for spots: !место <point> "
+              "уровень <label>",
+    },
+    "world.map_zoom_edge": {
+        "ru": "Дальше уровней нет.",
+        "en": "No more levels that way.",
     },
     # ── game/stats.py ────────────────────────────────────────────────────
     "stats.title": {

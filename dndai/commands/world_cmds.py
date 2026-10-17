@@ -8,7 +8,18 @@ from dndai.core.colors import CYAN, GREEN, RESET, YELLOW
 from dndai.core.i18n import t
 from dndai.game import economy
 from dndai.game.rpg import parse_npc_command
-from dndai.game.world import VOICE_TAGS, parse_world_command, show_map, show_world
+from dndai.game.world import (
+    SCALE_LADDER,
+    VOICE_TAGS,
+    current_view_scale,
+    parse_scale,
+    parse_world_command,
+    scale_choices,
+    scale_display,
+    show_map,
+    show_map_all,
+    show_world,
+)
 
 
 def npc_command(act, ctx: GameContext):
@@ -49,7 +60,28 @@ def world_command(act, ctx: GameContext):
         show_world(w)
         return CommandResult.silent()
     if action == "goto":
-        w.set_location(data)
+        target = data
+        known = target in w.nodes or target in w.connections
+        # `!идти` — один шаг: соседи ∪ родитель ∪ дети; новые точки растут деревом
+        if known and w.location and target != w.location:
+            allowed = w.move_options()
+            if target not in allowed:
+                moves = ", ".join(f"<<{o}>>" for o in allowed[:6])
+                if len(allowed) > 6:
+                    moves += f" … +{len(allowed) - 6}"
+                if moves:
+                    return CommandResult(
+                        f"{YELLOW}"
+                        f"{t('world.goto_blocked', target=target, list=moves)}"
+                        f"{RESET}"
+                    )
+                return CommandResult(
+                    f"{YELLOW}{t('world.goto_no_exits', target=target)}{RESET}"
+                )
+        if not known:
+            w.auto_parent(target, w.location)
+        w.set_location(target)
+        w.map_view = None  # обзор сбрасывается на уровень новой локации
         ctx.timew.advance(1)
         ctx.persist()
         outs = w.neighbors()  # пути из текущей локации (граф карты)
@@ -75,6 +107,26 @@ def world_command(act, ctx: GameContext):
             )
         voices = ", ".join(VOICE_TAGS.keys())
         return CommandResult(f"{YELLOW}{t('world.voice_unknown', list=voices)}{RESET}")
+    if action == "place":
+        a, b = data
+        if w.set_parent(a, b):
+            ctx.persist()
+            label = scale_display(parse_scale(w.scale_of(a))) or "—"
+            return CommandResult(
+                f"{GREEN}{t('world.place_set', a=a, b=b, scale=label)}{RESET}"
+            )
+        return CommandResult(f"{YELLOW}{t('world.place_cycle', a=a, b=b)}{RESET}")
+    if action == "place_level":
+        a, label = data
+        scale = parse_scale(label)
+        if w.set_scale(a, scale):
+            ctx.persist()
+            return CommandResult(
+                f"{GREEN}"
+                f"{t('world.place_level_set', a=a, scale=scale_display(scale))}"
+                f"{RESET}"
+            )
+        return CommandResult(f"{YELLOW}{t('world.place_bad')}{RESET}")
     if action == "connect":
         a, b = data
         w.connect(a, b)
@@ -83,11 +135,46 @@ def world_command(act, ctx: GameContext):
     return None
 
 
-def map_show(act, ctx: GameContext):
-    if re.match(r"(?i)!?\s*(?:карта|map)\s*$", act):
-        show_map(ctx.world)
+def _map_zoom(ctx: GameContext, step: int):
+    """Шаг обзора карты: ±1 по лестнице уровней."""
+
+    w = ctx.world
+    if w.zoom_map(step):
+        ctx.persist()
+        show_map(w)
         return CommandResult.silent()
-    return None
+    cur = current_view_scale(w)
+    key = "world.map_zoom_edge" if cur in SCALE_LADDER else "world.map_zoom_none"
+    return CommandResult(f"{YELLOW}{t(key)}{RESET}")
+
+
+def map_show(act, ctx: GameContext):
+    m = re.match(r"(?i)!?\s*(?:карта|map)(?:\s+(.*))?\s*$", act)
+    if not m:
+        return None
+    arg = (m.group(1) or "").strip().lower()
+    w = ctx.world
+    if not arg:
+        show_map(w)
+        return CommandResult.silent()
+    if arg in ("вверх", "up", "+"):
+        return _map_zoom(ctx, 1)
+    if arg in ("вниз", "down", "-"):
+        return _map_zoom(ctx, -1)
+    if arg in ("всё", "все", "all"):
+        show_map_all(w)
+        return CommandResult.silent()
+    scale = parse_scale(arg)
+    if scale in SCALE_LADDER:
+        w.map_view = scale
+        ctx.persist()
+        show_map(w)
+        return CommandResult.silent()
+    return CommandResult(
+        f"{YELLOW}"
+        f"{t('world.map_level_unknown', value=arg, list=scale_choices())}"
+        f"{RESET}"
+    )
 
 
 def map_connect(act, ctx: GameContext):

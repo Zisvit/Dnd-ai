@@ -182,6 +182,12 @@ def show_dm_help(full=False):
             f"!npc Имя | голос | заметка | отношение{RESET} — {t('help.npc_add')}",
         ]
     )
+    _row(
+        [
+            f"!место <<A>> в <<B>>{RESET} — {t('help.place')}",
+            f"!карта вверх|вниз|всё{RESET} — {t('help.map_zoom')}",
+        ]
+    )
     print()
     print(f"{CYAN}{t('help.rpg_title')}{RESET}")
     _row(
