@@ -1322,12 +1322,36 @@ _T: dict[str, dict[str, str]] = {
         "en": "🗺 MAP · {level}",
     },
     "world.map_all_title": {
-        "ru": "🗺 ВСЯ КАРТА (ветка игрока)",
-        "en": "🗺 FULL MAP (player branch)",
+        "ru": "🗺 ВСЯ КАРТА",
+        "en": "🗺 FULL MAP",
     },
     "world.map_here": {
         "ru": "◂ вы здесь",
         "en": "◂ you are here",
+    },
+    "world.map_legend": {
+        "ru": "► вы здесь · ◈ ваша ветка · ● посещено · ○ не исследовано",
+        "en": "► you are here · ◈ your branch · ● visited · ○ unexplored",
+    },
+    "world.map_legend_tree": {
+        "ru": "► вы здесь · ● посещено · ○ не исследовано",
+        "en": "► you are here · ● visited · ○ unexplored",
+    },
+    "world.map_stats": {
+        "ru": "точек: {points} · связей: {links}",
+        "en": "points: {points} · links: {links}",
+    },
+    "world.map_extra_links": {
+        "ru": "Ещё связи:",
+        "en": "More paths:",
+    },
+    "world.map_children_hint": {
+        "ru": "↓N — локаций внутри",
+        "en": "↓N — locations inside",
+    },
+    "world.map_no_links": {
+        "ru": "Связи не нарисованы — соедини точки: !связь <A> <B>",
+        "en": "No paths drawn — connect points: !link <A> <B>",
     },
     "world.map_points": {
         "ru": "Точки уровня:",

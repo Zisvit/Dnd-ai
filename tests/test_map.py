@@ -264,6 +264,54 @@ def test_level_view_render(capsys):
     assert t("world.map_hint") in out
 
 
+def test_level_view_is_drawn_with_boxes_and_legend(capsys):
+    w = design_world()
+    w.map_view = "город"
+    show_map(w)
+    out = ANSI.sub("", capsys.readouterr().out)
+    assert "╭" in out and "╰" in out
+    assert "◈ Туманск" in out  # ветка игрока на уровне города
+    assert "↔" in out  # связь нарисована линией
+    assert t("world.map_legend") in out
+    assert t("world.map_stats", points=2, links=1) in out
+    assert t("world.map_children_hint") in out
+
+
+def test_level_view_marks_current_location(capsys):
+    w = design_world()
+    show_map(w)  # уровень строения
+    out = ANSI.sub("", capsys.readouterr().out)
+    assert "► Таверна" in out
+    assert "╭" in out and "╰" in out
+
+
+def test_full_map_is_tree_with_unvisited_siblings(capsys):
+    w = design_world()
+    w.nodes["Порт"] = {"parent": "Весталия", "scale": "город"}
+    show_map_all(w)
+    out = ANSI.sub("", capsys.readouterr().out)
+    assert "├─" in out and "└─" in out
+    assert "○ Порт [город]" in out  # непосещённый сосед виден
+    assert "► Таверна [строение]" in out
+    assert t("world.map_legend_tree") in out
+
+
+def test_flat_map_is_drawn_with_connectors(capsys):
+    w = WorldState(
+        {
+            "location": "Лагерь",
+            "visited": ["Лагерь"],
+            "connections": {"Лагерь": ["Пещера"], "Пещера": ["Лагерь"]},
+        }
+    )
+    show_map(w)
+    out = ANSI.sub("", capsys.readouterr().out)
+    assert "╭" in out and "╰" in out
+    assert "► Лагерь" in out and "○ Пещера" in out
+    assert "↔" in out
+    assert t("world.map_links") in out
+
+
 def test_level_view_missing_level(capsys):
     w = design_world()
     del w.nodes["Терра"]  # уровень «планета» пропал из ветки

@@ -9,6 +9,7 @@ import re
 
 from dndai.core.colors import CYAN, GREEN, RESET, YELLOW
 from dndai.core.i18n import t
+from dndai.game.map_render import graph_lines, tree_lines
 
 # Голоса NPC: какой стиль "озвучки". Бот задаёт стиль в промпте,
 # чтобы DM играл голос разных персонажей.
@@ -147,7 +148,7 @@ class WorldState:
         if self.location:
             lines.append(f"[МИР] Текущая локация: <<{self.location}>>")
             if self.visited:
-                lines.append(f"Посещено: {', '.join('<<'+v+'>>' for v in self.visited)}")
+                lines.append(f"Посещено: {', '.join('<<' + v + '>>' for v in self.visited)}")
             chain = self.chain()
             if len(chain) > 1:
                 path = _fit_crumbs(list(reversed(chain)), MAP_PROMPT_PATH_LIMIT)
@@ -175,9 +176,7 @@ class WorldState:
             lines.append(f"Голоса NPC: {voices}")
         if self.connections:
             entries = [f"{k} ↔ {', '.join(v)}" for k, v in self.connections.items()]
-            lines.append(
-                "КАРТА связей: " + _cap_list(entries, MAP_PROMPT_LINKS_LIMIT, "; ")
-            )
+            lines.append("КАРТА связей: " + _cap_list(entries, MAP_PROMPT_LINKS_LIMIT, "; "))
         if lines:
             return "\n".join(lines)
         return ""
@@ -216,11 +215,7 @@ class WorldState:
         return node.get("scale") or None
 
     def children_of(self, name):
-        return [
-            n
-            for n, node in self.nodes.items()
-            if (node or {}).get("parent") == name
-        ]
+        return [n for n, node in self.nodes.items() if (node or {}).get("parent") == name]
 
     def chain(self, name=None):
         """Путь точки вверх до корня (защита от циклов)."""
@@ -398,51 +393,97 @@ def _fit_crumbs(names, limit):
     return "… ▸ " + " ▸ ".join(out)
 
 
-def _print_row(label, items, color, width=MAP_ROW_WIDTH):
-    """Строка «Метка элементы» с обрезкой по ширине и «… и ещё N»."""
+def _print_wrapped(label, items, width=MAP_ROW_WIDTH, color=CYAN):
+    """Печать списка с меткой и переносом длинных строк."""
 
-    sep = "   "
-    reserve = 14  # запас под «… и ещё N»
-    budget = width - 3 - len(label)
-    shown = []
+    prefix = label + " "
+    line = prefix
+    first = True
     for item in items:
-        used = sum(len(s) + len(sep) for s in shown)
-        add = (len(sep) if shown else 0) + len(item)
-        if shown and used + add > budget - reserve:
-            break
-        shown.append(item)
-    text = sep.join(shown)
-    rest = len(items) - len(shown)
-    if rest:
-        text += f" {t('world.map_more', n=rest)}"
-    print(f"  {color}{label}{RESET} {text}")
+        candidate = line + ("" if first else "   ") + item
+        if line.strip() and len(candidate) > width:
+            print(f"  {color}{line}{RESET}")
+            line = " " * len(prefix) + item
+        else:
+            line = candidate
+        first = False
+    if line.strip():
+        print(f"  {color}{line}{RESET}")
+
+
+def _unique_links(world):
+    """Число уникальных двусторонних связей карты."""
+
+    pairs = set()
+    for a, neighbors in (world.connections or {}).items():
+        for b in neighbors or []:
+            if a != b:
+                pairs.add(tuple(sorted((a, b))))
+    return len(pairs)
+
+
+def _flat_points(world: WorldState):
+    """Точки для плоской карты: текущая и окрестности в 2 шага (до 10)."""
+
+    points: list[str] = []
+
+    def add(name):
+        name = (name or "").strip()
+        if name and name not in points and len(points) < 10:
+            points.append(name)
+
+    start = world.location or (world.visited[0] if world.visited else "")
+    add(start)
+    queue = [start] if start else []
+    while queue and len(points) < 10:
+        current = queue.pop(0)
+        for neighbor in world.connections.get(current, []):
+            if neighbor not in points:
+                add(neighbor)
+                if neighbor in points:
+                    queue.append(neighbor)
+    for name in world.visited or []:
+        add(name)
+    return points
 
 
 def _show_flat_map(world: WorldState):
-    """Плоский вид без иерархии: как один уровень (старые сессии)."""
+    """Плоский вид без иерархии: рисованный граф (старые сессии)."""
 
     print(f"\n{CYAN}{t('world.map_title')}{RESET}")
     if not world.connections and not world.visited:
         print(f"  {YELLOW}{t('world.map_empty')}{RESET}")
         return
-    # Текущая позиция всегда видна, даже если карта ещё без связей
-    if world.location:
-        here = t('world.map_you_are_here')
-        print(f"  {GREEN}► {here}: <<{world.location}>>{RESET}")
-    # посещённые
-    visited_rest = [v for v in (world.visited or []) if v != world.location]
-    if visited_rest:
-        print(f"  {GREEN}{t('world.map_visited')}{RESET} "
-              f"{', '.join('<<'+v+'>>' for v in visited_rest)}")
-    if world.connections:
-        print(f"  {CYAN}{t('world.map_links')}{RESET}")
-        for loc, neigh in world.connections.items():
-            mark = "►" if loc == world.location else " "
-            print(f"  {mark} {loc} ↔ {', '.join(neigh)}")
+
+    points = _flat_points(world)
+    if not points:
+        print(f"  {YELLOW}{t('world.map_empty')}{RESET}")
+        return
+    point_set = set(points)
+    edges = []
+    for a in points:
+        for b in world.connections.get(a, []):
+            if b in point_set and b != a and (b, a) not in edges:
+                edges.append((a, b))
+
+    current = world.location or points[0]
+    lines = graph_lines(
+        points,
+        edges,
+        current=current,
+        visited=world.visited,
+        width=MAP_ROW_WIDTH,
+    )
+    for line in lines:
+        print(f"  {line}" if line else "")
+
+    print(f"  {CYAN}{t('world.map_links')}{RESET} {len(edges)}")
+    if len(points) > 1 and not edges:
+        print(f"  {YELLOW}{t('world.map_no_links')}{RESET}")
 
 
 def show_map(world: WorldState):
-    """Уровень обзора: точки уровня, связи, путь. Без nodes — плоский вид."""
+    """Уровень обзора: рисованный граф точек, связи, путь. Без nodes — плоско."""
 
     if not world.nodes:
         _show_flat_map(world)
@@ -452,7 +493,7 @@ def show_map(world: WorldState):
         show_map_all(world)
         return
     branch = level_branch(world, scale)
-    here = t('world.map_here')
+    here = t("world.map_here")
     print(f"\n{CYAN}{t('world.map_level_title', level=scale_display(scale))}{RESET}")
     chain = world.chain()
     rev = list(reversed(chain))  # корень → локация
@@ -461,14 +502,13 @@ def show_map(world: WorldState):
     else:
         path = rev
     if path:
-        print(f"  {_fit_crumbs(path, MAP_ROW_WIDTH - 3 - len(here))} {here}")
+        path_text = _fit_crumbs(path, MAP_ROW_WIDTH - 3 - len(here))
+        print(f"  {CYAN}{path_text}{RESET} {GREEN}{here}{RESET}")
     if not branch:
-        print(
-            f"  {YELLOW}"
-            f"{t('world.map_level_missing', level=scale_display(scale))}{RESET}"
-        )
+        print(f"  {YELLOW}{t('world.map_level_missing', level=scale_display(scale))}{RESET}")
         print(f"  {YELLOW}{t('world.map_hint')}{RESET}")
         return
+
     parent = world.parent_of(branch)
     siblings = []
     if parent:
@@ -476,44 +516,54 @@ def show_map(world: WorldState):
             n
             for n in world.children_of(parent)
             if n != branch
-            and (
-                world.scale_of(n) is None
-                or parse_scale(world.scale_of(n)) == scale
-            )
+            and (world.scale_of(n) is None or parse_scale(world.scale_of(n)) == scale)
         ]
     points = [branch] + siblings
-    _print_row(
-        t('world.map_points'),
-        [f"● {_clip(n, 40)}" + (" ◂" if n == branch else "") for n in points],
-        GREEN,
+    point_set = set(points)
+    links = []
+    for index, a in enumerate(points):
+        for b in world.neighbors(a):
+            if b in point_set and points.index(b) > index and (b, a) not in links:
+                links.append((a, b))
+
+    print(f"  {YELLOW}{t('world.map_stats', points=len(points), links=len(links))}{RESET}")
+    children = {name: len(world.children_of(name)) for name in points}
+    current = world.location if world.location in point_set else None
+    focus = branch if branch != current else None
+    lines = graph_lines(
+        points,
+        links,
+        current=current,
+        focus=focus,
+        visited=world.visited,
+        children=children,
+        width=MAP_ROW_WIDTH,
     )
-    pset = set(points)
-    links = [
-        (a, b)
-        for i, a in enumerate(points)
-        for b in world.neighbors(a)
-        if b in pset and points.index(b) > i
-    ]
-    if links:
-        _print_row(
-            t('world.map_links'),
-            [f"{_clip(a, 24)} ↔ {_clip(b, 24)}" for a, b in links],
-            CYAN,
-        )
+    for line in lines:
+        print(f"  {line}" if line else "")
+
     cross = []
     for a in points:
         for b in world.neighbors(a):
-            if b not in pset and (b, a) not in cross:
-                cross.append((a, b))
+            if b in point_set or (b, a) in cross:
+                continue
+            # Родитель/ребёнок уже показаны в футере стрелками ↑/↓.
+            if world.parent_of(a) == b or world.parent_of(b) == a:
+                continue
+            cross.append((a, b))
     if cross:
         items = []
         for a, b in cross:
             label = scale_display(parse_scale(world.scale_of(b)))
-            item = f"{_clip(a, 20)} ↔ {_clip(b, 20)}"
+            item = f"{_clip(a, 18)} ↔ {_clip(b, 18)}"
             if label:
                 item += f" [{label}]"
             items.append(item)
-        _print_row(t('world.map_cross'), items, CYAN)
+        _print_wrapped(t("world.map_cross"), items)
+
+    if len(points) > 1 and not links:
+        print(f"  {YELLOW}{t('world.map_no_links')}{RESET}")
+
     # футер: ↑ родитель, ↓ дети, подсказка по зум-командам
     parts = []
     if parent:
@@ -522,8 +572,8 @@ def show_map(world: WorldState):
         parts.append(f"{up} [{parent_scale}]" if parent_scale else up)
     kids = world.children_of(branch)
     if kids:
-        parts.append(t('world.map_down', n=len(kids)))
-    parts.append(t('world.map_hint'))
+        parts.append(t("world.map_down", n=len(kids)))
+    parts.append(t("world.map_hint"))
     while len(parts) > 1 and len("   ".join(parts)) + 2 > MAP_ROW_WIDTH:
         parts.pop(0)
     tail = f"{YELLOW}{parts[-1]}{RESET}"
@@ -531,80 +581,100 @@ def show_map(world: WorldState):
 
 
 def show_map_all(world: WorldState):
-    """Вся ветка игрока: от корня до текущей локации."""
+    """Всё известное дерево мира: корни сверху, текущая локация отмечена."""
 
     if not world.nodes:
         _show_flat_map(world)
         return
+    # В старых сессиях предок может быть только в цепочке, без записи в nodes.
+    nodes = dict(world.nodes)
+    for name in world.chain():
+        nodes.setdefault(name, {})
+
     print(f"\n{CYAN}{t('world.map_all_title')}{RESET}")
-    scale = current_view_scale(world)
-    branch = level_branch(world, scale) if scale else None
+    print(f"  {YELLOW}{t('world.map_stats', points=len(nodes), links=_unique_links(world))}{RESET}")
 
-    def row(name):
-        raw = world.scale_of(name)
-        label = scale_display(parse_scale(raw)) if raw else ""
-        mark = ""
-        if name == world.location:
-            mark = f" {t('world.map_here')}"
-        elif branch and name == branch:
-            mark = " ◂"
-        print(f"  {label:<10} {_clip(name, 54)}{mark}")
+    chain = list(reversed(world.chain()))
+    next_in_chain = {chain[index]: chain[index + 1] for index in range(len(chain) - 1)}
+    children_map: dict[str, list[str]] = {name: [] for name in nodes}
+    roots = []
+    for name, node in nodes.items():
+        parent = (node or {}).get("parent")
+        if isinstance(parent, str) and parent in nodes:
+            children_map[parent].append(name)
+        else:
+            roots.append(name)
 
-    chain_names = list(reversed(world.chain()))
-    if len(chain_names) > 22:
-        head, tail = chain_names[:6], chain_names[-12:]
-        for name in head:
-            row(name)
-        hidden = len(chain_names) - len(head) - len(tail)
-        print(f"  {t('world.map_more', n=hidden)}")
-        for name in tail:
-            row(name)
-    else:
-        for name in chain_names:
-            row(name)
+    for parent in children_map:
+        children_map[parent].sort(
+            key=lambda name: (
+                0 if name == next_in_chain.get(parent) else 1,
+                0 if name in world.visited else 1,
+                name.lower(),
+            )
+        )
+    chain_root = chain[0] if chain else None
+    roots.sort(key=lambda name: (0 if name == chain_root else 1, name.lower()))
+
+    labels = {name: scale_display(parse_scale(world.scale_of(name))) for name in world.nodes}
+    lines, hidden = tree_lines(
+        world.nodes,
+        roots,
+        children_map,
+        labels,
+        world.location,
+        world.visited,
+        t("world.map_here"),
+        width=MAP_ROW_WIDTH,
+    )
+    for line in lines:
+        print(f"  {line}")
+    if hidden:
+        print(f"  {YELLOW}{t('world.map_more', n=hidden)}{RESET}")
+    print(f"  {CYAN}{t('world.map_legend_tree')}{RESET}")
 
 
 def parse_world_command(text):
     """Парсит команды мира. Возвращает (action, data) или None."""
     text = text.strip()
 
-    if re.match(r'(?i)^!\s*мир', text):
+    if re.match(r"(?i)^!\s*мир", text):
         return ("show", None)
 
-    m = re.match(r'(?i)^!\s*карта\b\s*(.*)$', text)
+    m = re.match(r"(?i)^!\s*карта\b\s*(.*)$", text)
     if m:
         arg = m.group(1).strip()
         return ("map", arg or None)
 
-    m = re.match(r'(?i)^!\s*место\s+(.+?)\s+(?:уровень|level)\s+(\S+)\s*$', text)
+    m = re.match(r"(?i)^!\s*место\s+(.+?)\s+(?:уровень|level)\s+(\S+)\s*$", text)
     if m:
         return ("place_level", (m.group(1).strip(), m.group(2).strip()))
 
-    m = re.match(r'(?i)^!\s*место\s+(.+)\s+в\s+(.+?)\s*$', text)
+    m = re.match(r"(?i)^!\s*место\s+(.+)\s+в\s+(.+?)\s*$", text)
     if m:
         return ("place", (m.group(1).strip(), m.group(2).strip()))
 
-    m = re.match(r'(?i)!?\s*связь\s+(\S+)\s+(.+)', text)
+    m = re.match(r"(?i)!?\s*связь\s+(\S+)\s+(.+)", text)
     if m:
         a = m.group(1).strip("<>").strip()
         b = m.group(2).strip("<>").strip()
         return ("connect", (a, b))
 
-    m = re.match(r'(?i)!?\s*идти\s+(.+)', text)
+    m = re.match(r"(?i)!?\s*идти\s+(.+)", text)
     if m:
         loc = m.group(1).strip().strip("<>").strip()
         return ("goto", loc)
 
-    m = re.match(r'(?i)!?\s*локация\s+(.+)', text)
+    m = re.match(r"(?i)!?\s*локация\s+(.+)", text)
     if m:
         loc = m.group(1).strip().strip("<>").strip()
         return ("goto", loc)
 
-    m = re.match(r'(?i)!?\s*факт\s+(.+)', text)
+    m = re.match(r"(?i)!?\s*факт\s+(.+)", text)
     if m:
         return ("fact", m.group(1).strip())
 
-    m = re.match(r'(?i)!?\s*голос\s+(\S+)\s+(.+)', text)
+    m = re.match(r"(?i)!?\s*голос\s+(\S+)\s+(.+)", text)
     if m:
         npc = m.group(1).strip("{}").strip()
         tag = m.group(2).strip().lower()
